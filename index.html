@@ -265,6 +265,7 @@ tr:last-child td{border-bottom:none;}
     <div class="hud-cell"><div class="hud-label">Distance</div><div class="hud-val" id="hud-dist">0.00 km</div></div>
     <div class="hud-cell"><div class="hud-label">Vitesse</div><div class="hud-val green" id="hud-spd">— km/h</div></div>
     <div class="hud-cell"><div class="hud-label">Points GPS</div><div class="hud-val" id="hud-pts">0</div></div>
+    <div class="hud-cell"><div class="hud-label">Appels GPS</div><div class="hud-val" id="hud-calls" style="color:var(--muted);font-size:16px;">0</div></div>
   </div>
 
   <!-- Map section -->
@@ -757,29 +758,26 @@ function startLive(){
   if(!navigator.geolocation){
     alert('La géolocalisation n\'est pas disponible sur cet appareil ou navigateur.');return;
   }
-  // Test permission with a one-shot request first — triggers the Android permission dialog
-  navigator.geolocation.getCurrentPosition(
-    ()=>_doStartLive(),  // permission granted → start
-    e=>_gpsPermErr(e),   // permission denied or error
-    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
-  );
-  // Show feedback while waiting for permission
   document.getElementById('live-label').textContent='⏳ Attente GPS…';
   document.getElementById('btn-live').disabled=true;
+  // First call: get permission AND first position
+  navigator.geolocation.getCurrentPosition(
+    pos=>{_doStartLive(); onGps(pos);},
+    e=>_gpsPermErr(e),
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+  );
 }
+let liveGpsCalls=0;
 function _doStartLive(){
   document.getElementById('btn-live').disabled=false;
-  livePts=[];liveDist=0;liveLast=null;liveLastRecorded=null;liveStart=Date.now();
+  livePts=[];liveDist=0;liveLast=null;liveLastRecorded=null;liveStart=Date.now();liveGpsCalls=0;
   liveLayer=L.layerGroup().addTo(map);
   liveMarker=null;liveAccCircle=null;
 
-  // Use setInterval + getCurrentPosition for reliable fixed-interval recording
-  // watchPosition on Android often fires only once if position doesn't change
+  // setInterval fires getCurrentPosition every N seconds
   liveWatch=setInterval(()=>{
-    navigator.geolocation.getCurrentPosition(onGps,gpsErr,{enableHighAccuracy:true,maximumAge:0,timeout:10000});
+    navigator.geolocation.getCurrentPosition(onGps, gpsErrSilent, {enableHighAccuracy:true,maximumAge:0,timeout:10000});
   }, liveFreqSec*1000);
-  // Also get first point immediately
-  navigator.geolocation.getCurrentPosition(onGps,gpsErr,{enableHighAccuracy:true,maximumAge:0,timeout:10000});
 
   liveOn=true;
   document.getElementById('btn-live').className='btn-live recording';
@@ -790,6 +788,7 @@ function _doStartLive(){
   document.querySelector('.map-section').scrollIntoView({behavior:'smooth'});
   liveTicker=setInterval(()=>{const s=Math.floor((Date.now()-liveStart)/1000);document.getElementById('hud-dur').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;},1000);
 }
+function gpsErrSilent(e){console.warn('GPS interval error:',e.code,e.message);}
 function _gpsPermErr(e){
   document.getElementById('btn-live').disabled=false;
   document.getElementById('live-label').textContent='⏺ Record';
@@ -802,6 +801,7 @@ function _gpsPermErr(e){
   alert(msgs[e.code]||'Erreur GPS inconnue (code '+e.code+').');
 }
 function onGps(pos){
+  liveGpsCalls++;
   const{latitude:lat,longitude:lon,altitude,speed,accuracy}=pos.coords;
   const ele=altitude||0,time=new Date(pos.timestamp);
   const pt={lat,lon,ele,time};
@@ -831,6 +831,7 @@ function onGps(pos){
   livePts.push(pt);
   liveLast=pt;
   document.getElementById('hud-pts').textContent=livePts.length;
+  document.getElementById('hud-calls').textContent=liveGpsCalls;
 }
 function gpsErr(e){
   const msgs={
