@@ -168,19 +168,7 @@ tr:last-child td{border-bottom:none;}
 .mbtn-primary{background:var(--accent);color:#fff;}
 .mbtn-ghost{background:var(--surface2);color:var(--muted);}
 
-/* synthesis table */
-.stbl{border-collapse:collapse;font-size:12px;white-space:nowrap;}
-.stbl th{color:var(--muted);font-weight:500;padding:5px 10px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid var(--border);}
-.stbl th.lbl{text-align:left;}
-.stbl th.year-hd{text-align:center;color:var(--text);font-weight:700;border-bottom:2px solid var(--border);padding:6px 10px;}
-.stbl td{padding:5px 10px;text-align:right;border-bottom:1px solid rgba(46,54,80,.4);border-right:1px solid rgba(46,54,80,.25);color:var(--text);}
-.stbl td.lbl{text-align:left;color:var(--muted);font-weight:500;}
-.stbl tr:hover td{background:rgba(79,142,247,.06);}
-.stbl tr.total-row td{border-top:2px solid var(--border);font-weight:700;color:var(--text);background:rgba(36,43,61,.6);}
-.stbl tr.summary-row td{font-size:11px;color:var(--muted);background:rgba(36,43,61,.3);}
-.stbl td.zero{color:var(--border);}
-.stbl .c-pied{color:var(--accent);}
-.stbl .c-cheval{color:#91c8f7;}
+
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
@@ -301,19 +289,11 @@ tr:last-child td{border-bottom:none;}
         <div class="chart-wrap">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px;">
             <div class="chart-title" style="margin:0;">Distance par mois (km)</div>
-            <select id="monthly-year" onchange="renderMonthlyChart()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:4px 10px;"></select>
+<select id="monthly-year" style="display:none;"></select>
           </div>
           <canvas id="chart-monthly" style="max-height:320px;"></canvas>
         </div>
-        <div class="chart-wrap" style="padding:.85rem;">
-          <div class="chart-title" style="margin-bottom:.85rem;">Tableau de synthèse</div>
-          <div id="synth-table-wrap" style="overflow-x:auto;">
-            <div class="no-data" style="padding:1rem;">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-              Aucune donnée
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
 
@@ -1022,7 +1002,7 @@ function renderGlobalTab(){
   else if(prevY&&years.includes(prevY))mySel.value=prevY;
   else if(years.length)mySel.value=years[years.length-1];
   renderMonthlyChart();
-  updateComparisonSelectors();
+
 }
 
 
@@ -1030,14 +1010,15 @@ const MONTH_NAMES=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','A
 const TYPE_COLORS={pied:'#4f8ef7',cheval:'#91c8f7'};
 const TYPE_LABELS={pied:'À pied',cheval:'À cheval'};
 function renderMonthlyChart(){
-  const y=document.getElementById('monthly-year')?.value;
-  if(!y)return;
+  const y=window._gYear||'all';
   const gc='rgba(46,54,80,.8)',tc='#7a82a0';
-  // Build data for all 12 months — use explicit ordered array to avoid key-sort issues
   const moKeys=['01','02','03','04','05','06','07','08','09','10','11','12'];
   const mo={};
   moKeys.forEach(k=>{mo[k]={pied:0,cheval:0};});
-  traces.filter(t=>t.meta.date?.startsWith(y)).forEach(t=>{
+  // Filter by selected year or sum all
+  const filtered=y==='all'?traces:traces.filter(t=>t.meta.date?.startsWith(y));
+  filtered.forEach(t=>{
+    if(!t.meta.date)return;
     const mn=t.meta.date.slice(5,7);
     if(mo[mn]&&mo[mn][t.meta.type]!==undefined)mo[mn][t.meta.type]+=(t.points?t.stats.dist/1000:t.textData.distKm);
   });
@@ -1104,97 +1085,8 @@ function renderMonthlyChart(){
   });
 }
 
-// ── COMPARISON ──────────────────────────────────────────────────────────────
-function renderSynthTable(){
-  const wrap=document.getElementById('synth-table-wrap');
-  if(!wrap)return;
-  if(!traces.length){
-    wrap.innerHTML='<div class="no-data" style="padding:1rem;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>Aucune donnée</div>';
-    return;
-  }
-  const years=[...new Set(traces.map(t=>t.meta.date?.slice(0,4)).filter(Boolean))].sort();
-
-  // Build data structure: mo[month][year][type] = {dist, count}
-  const data={};
-  for(let m=1;m<=12;m++){
-    const mk=String(m).padStart(2,'0');
-    data[mk]={};
-    years.forEach(y=>{data[mk][y]={pied:{dist:0,n:0},cheval:{dist:0,n:0},mixte:{dist:0,n:0}};});
-  }
-  traces.forEach(t=>{
-    if(!t.meta.date)return;
-    const y=t.meta.date.slice(0,4), mk=t.meta.date.slice(5,7);
-    if(!data[mk]||!data[mk][y])return;
-    const km=t.points?t.stats.dist/1000:t.textData.distKm;
-    data[mk][y][t.meta.type].dist+=km;
-    data[mk][y][t.meta.type].n+=1;
-  });
-
-  // Year totals
-  const yearTotals={};
-  years.forEach(y=>{
-    const trs=traces.filter(t=>t.meta.date?.startsWith(y));
-    const dists=trs.map(t=>t.points?t.stats.dist/1000:t.textData.distKm);
-    const total=dists.reduce((a,b)=>a+b,0);
-    const avg=dists.length?total/dists.length:0;
-    const sorted=[...dists].sort((a,b)=>a-b);
-    const med=sorted.length?sorted.length%2===0?(sorted[sorted.length/2-1]+sorted[sorted.length/2])/2:sorted[Math.floor(sorted.length/2)]:0;
-    const byType={pied:{dist:0,n:0},cheval:{dist:0,n:0},mixte:{dist:0,n:0}};
-    trs.forEach(t=>{const km=t.points?t.stats.dist/1000:t.textData.distKm;byType[t.meta.type].dist+=km;byType[t.meta.type].n+=t.meta.type?1:0;byType[t.meta.type].n=byType[t.meta.type].n||0;});
-    trs.forEach(t=>{byType[t.meta.type].n+=1;}); // recount cleanly
-    // reset and recount
-    const byType2={pied:{dist:0,n:0},cheval:{dist:0,n:0}};
-    trs.forEach(t=>{const km=t.points?t.stats.dist/1000:t.textData.distKm;byType2[t.meta.type].dist+=km;byType2[t.meta.type].n++;});
-    yearTotals[y]={total,avg,med,count:trs.length,byType:byType2};
-  });
-
-  function fmtKm(v){return v>0?`<span>${v.toFixed(1)}<small>km</small></span>`:`<span class="zero">0</span>`;}
-  function fmtN(v){return v>0?`<small>(${v})</small>`:`<span class="zero"></span>`;}
-
-  // Header: year columns, each split into pied / cheval / nb sorties
-  const colsPerYear=3; // à pied km | à cheval km | nb sorties
-  let thead=`<thead>
-    <tr>
-      <th class="lbl" rowspan="2"></th>
-      ${years.map(y=>`<th class="year-hd" colspan="${colsPerYear}">${y}</th>`).join('')}
-    </tr>
-    <tr>
-      ${years.map(()=>`<th>à pied</th><th>à cheval</th><th>sorties</th>`).join('')}
-    </tr>
-  </thead>`;
-
-  const MONTH_NAMES=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  let tbody='<tbody>';
-  for(let m=1;m<=12;m++){
-    const mk=String(m).padStart(2,'0');
-    const cells=years.map(y=>{
-      const d=data[mk][y];
-      const nTotal=d.pied.n+d.cheval.n+d.mixte.n;
-      return`<td class="c-pied">${d.pied.dist>0?d.pied.dist.toFixed(1)+'km':'<span class="zero">0</span>'}</td><td class="c-cheval">${d.cheval.dist>0?d.cheval.dist.toFixed(1)+'km':'<span class="zero">0</span>'}</td><td>${nTotal>0?nTotal:'<span class="zero">0</span>'}</td>`;
-    }).join('');
-    tbody+=`<tr><td class="lbl">${MONTH_NAMES[m-1]}</td>${cells}</tr>`;
-  }
-  // Total row
-  const totalCells=years.map(y=>{
-    const t=yearTotals[y];
-    return`<td class="c-pied">${t.byType.pied.dist.toFixed(1)}km</td><td class="c-cheval">${t.byType.cheval.dist.toFixed(1)}km</td><td>${t.count}</td>`;
-  }).join('');
-  tbody+=`<tr class="total-row"><td class="lbl">Total</td>${totalCells}</tr>`;
-  // Dist totale row
-  const distCells=years.map(y=>`<td colspan="${colsPerYear}" style="text-align:center;">${yearTotals[y].total.toFixed(1)} km</td>`).join('');
-  tbody+=`<tr class="summary-row"><td class="lbl">Distance totale</td>${distCells}</tr>`;
-  // Moyenne row
-  const avgCells=years.map(y=>`<td colspan="${colsPerYear}" style="text-align:center;">${yearTotals[y].avg.toFixed(2)} km</td>`).join('');
-  tbody+=`<tr class="summary-row"><td class="lbl">Distance moyenne</td>${avgCells}</tr>`;
-  // Médiane row
-  const medCells=years.map(y=>`<td colspan="${colsPerYear}" style="text-align:center;">${yearTotals[y].med.toFixed(2)} km</td>`).join('');
-  tbody+=`<tr class="summary-row"><td class="lbl">Distance médiane</td>${medCells}</tr>`;
-  tbody+='</tbody>';
-
-  wrap.innerHTML=`<table class="stbl">${thead}${tbody}</table>`;
-}
 // kept as no-op so renderGlobalTab doesn't break
-function updateComparisonSelectors(){ renderSynthTable(); }
+
 
 function renderSynthese(){
   const noEl=document.getElementById('no-synth'),cont=document.getElementById('synth-content');
