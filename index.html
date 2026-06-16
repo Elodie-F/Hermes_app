@@ -750,7 +750,7 @@ function confirmText(){
 }
 
 // ── LIVE RECORDING ─────────────────────────────────────────────────────────
-let liveOn=false,liveWatch=null,livePts=[],liveStart=null,liveLayer=null,liveMarker=null,liveTicker=null,liveLast=null,liveDist=0;
+let liveOn=false,liveWatch=null,livePts=[],liveStart=null,liveLayer=null,liveMarker=null,liveAccCircle=null,liveTicker=null,liveLast=null,liveDist=0;
 let liveFreqSec=5, liveLastRecorded=null;
 function toggleRecording(){if(!liveOn)startLive();else stopLive();}
 function startLive(){
@@ -771,8 +771,8 @@ function _doStartLive(){
   document.getElementById('btn-live').disabled=false;
   livePts=[];liveDist=0;liveLast=null;liveLastRecorded=null;liveStart=Date.now();
   liveLayer=L.layerGroup().addTo(map);
-  liveMarker=null; // will be created on first real GPS point
-  liveWatch=navigator.geolocation.watchPosition(onGps,gpsErr,{enableHighAccuracy:true,maximumAge:60000,timeout:15000});
+  liveMarker=null;liveAccCircle=null; // created on first real GPS point
+  liveWatch=navigator.geolocation.watchPosition(onGps,gpsErr,{enableHighAccuracy:true,maximumAge:0,timeout:15000});
   liveOn=true;
   document.getElementById('btn-live').className='btn-live recording';
   document.getElementById('live-label').textContent='⏹ Stop';
@@ -794,20 +794,26 @@ function _gpsPermErr(e){
   alert(msgs[e.code]||'Erreur GPS inconnue (code '+e.code+').');
 }
 function onGps(pos){
-  const{latitude:lat,longitude:lon,altitude,speed}=pos.coords;
+  const{latitude:lat,longitude:lon,altitude,speed,accuracy}=pos.coords;
   const ele=altitude||0,time=new Date(pos.timestamp);
   const pt={lat,lon,ele,time};
   const now=Date.now();
   const shouldRecord=!liveLastRecorded||(now-liveLastRecorded)>=liveFreqSec*1000;
 
-  // Create or update position marker
+  // Create or update position marker + accuracy circle
   if(!liveMarker){
-    // First point: create marker and center map
     const icon=L.divIcon({html:`<div style="width:15px;height:15px;border-radius:50%;background:var(--danger);border:3px solid #fff;box-shadow:0 0 0 4px rgba(247,100,149,.3)"></div>`,iconSize:[15,15],iconAnchor:[7,7],className:''});
     liveMarker=L.marker([lat,lon],{icon,zIndexOffset:1000}).addTo(map);
+    liveAccCircle=L.circle([lat,lon],{
+      radius:accuracy||10,
+      color:'#f76495',weight:1,opacity:.5,
+      fillColor:'#f76495',fillOpacity:.08
+    }).addTo(map);
     map.setView([lat,lon],15);
   } else {
     liveMarker.setLatLng([lat,lon]);
+    liveAccCircle.setLatLng([lat,lon]);
+    if(accuracy)liveAccCircle.setRadius(accuracy);
     if(mapVisible)map.panTo([lat,lon],{animate:true,duration:0.5});
   }
 
@@ -861,6 +867,7 @@ function saveLive(){
   closeModal('modal-live');
   const stats=computeStats(livePts);const color=COLORS[traces.length%COLORS.length];
   if(liveMarker&&liveMarker.remove)liveMarker.remove();
+  if(liveAccCircle&&liveAccCircle.remove)liveAccCircle.remove();liveAccCircle=null;
   traces.push({source:'live',name,color,meta,points:livePts,layers:liveLayer,stats});
   selectedIdx=traces.length-1;liveLayer=null;
   saveStorage();renderAll();resetLiveUI();
@@ -869,6 +876,7 @@ function discardLive(){
   closeModal('modal-live');
   if(liveLayer){liveLayer.remove();liveLayer=null;}
   if(liveMarker&&liveMarker.remove)liveMarker.remove();
+  if(liveAccCircle&&liveAccCircle.remove)liveAccCircle.remove();liveAccCircle=null;
   resetLiveUI();
 }
 function resetLiveUI(){
