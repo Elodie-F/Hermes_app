@@ -753,21 +753,45 @@ let liveOn=false,liveWatch=null,livePts=[],liveStart=null,liveLayer=null,liveMar
 let liveFreqSec=10, liveLastRecorded=null;
 function toggleRecording(){if(!liveOn)startLive();else stopLive();}
 function startLive(){
-  if(!navigator.geolocation){alert('GPS non disponible.');return;}
+  if(!navigator.geolocation){
+    alert('La géolocalisation n\'est pas disponible sur cet appareil ou navigateur.');return;
+  }
+  // Test permission with a one-shot request first — triggers the Android permission dialog
+  navigator.geolocation.getCurrentPosition(
+    ()=>_doStartLive(),  // permission granted → start
+    e=>_gpsPermErr(e),   // permission denied or error
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+  );
+  // Show feedback while waiting for permission
+  document.getElementById('live-label').textContent='⏳ Attente GPS…';
+  document.getElementById('btn-live').disabled=true;
+}
+function _doStartLive(){
+  document.getElementById('btn-live').disabled=false;
   livePts=[];liveDist=0;liveLast=null;liveLastRecorded=null;liveStart=Date.now();
   liveLayer=L.layerGroup().addTo(map);
   const icon=L.divIcon({html:`<div style="width:15px;height:15px;border-radius:50%;background:var(--danger);border:3px solid #fff;box-shadow:0 0 0 4px rgba(247,100,149,.3)"></div>`,iconSize:[15,15],iconAnchor:[7,7],className:''});
   liveMarker=L.marker([0,0],{icon,zIndexOffset:1000});
-  liveWatch=navigator.geolocation.watchPosition(onGps,gpsErr,{enableHighAccuracy:true,maximumAge:60000,timeout:10000});
+  liveWatch=navigator.geolocation.watchPosition(onGps,gpsErr,{enableHighAccuracy:true,maximumAge:60000,timeout:15000});
   liveOn=true;
   document.getElementById('btn-live').className='btn-live recording';
   document.getElementById('live-label').textContent='⏹ Stop';
   document.getElementById('rec-dot').classList.add('on');
   document.getElementById('live-hud').classList.add('on');
-  // Ensure map is visible and scrolled into view
   if(!mapVisible)toggleMap();
   document.querySelector('.map-section').scrollIntoView({behavior:'smooth'});
   liveTicker=setInterval(()=>{const s=Math.floor((Date.now()-liveStart)/1000);document.getElementById('hud-dur').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;},1000);
+}
+function _gpsPermErr(e){
+  document.getElementById('btn-live').disabled=false;
+  document.getElementById('live-label').textContent='⏺ Record';
+  document.getElementById('btn-live').className='btn-live';
+  const msgs={
+    1:'Localisation refusée.\n\nSur Android : Paramètres → Applications → Chrome → Autorisations → Localisation → Autoriser.',
+    2:'Signal GPS indisponible. Essaie en extérieur.',
+    3:'Délai GPS dépassé. Vérifie que la localisation est activée dans les paramètres Android.'
+  };
+  alert(msgs[e.code]||'Erreur GPS inconnue (code '+e.code+').');
 }
 function onGps(pos){
   const{latitude:lat,longitude:lon,altitude,speed}=pos.coords;
@@ -803,7 +827,16 @@ function onGps(pos){
     document.getElementById('hud-dist').textContent=(liveDist/1000).toFixed(2)+' km';
   }
 }
-function gpsErr(e){if(e.code===1)alert('GPS refusé. Autorise la localisation.');}
+function gpsErr(e){
+  const msgs={
+    1:'Localisation refusée. Va dans Paramètres Android → Applications → Chrome → Autorisations → Localisation.',
+    2:'Signal GPS perdu. Essaie de te rapprocher d\'une fenêtre ou d\'un espace ouvert.',
+    3:'Délai GPS dépassé. Le signal est peut-être faible.'
+  };
+  console.warn('GPS watchPosition error:', e.code, e.message);
+  // Only show alert for permission error, others just log
+  if(e.code===1){ stopLive(); alert(msgs[1]); }
+}
 function stopLive(){
   if(liveWatch!=null){navigator.geolocation.clearWatch(liveWatch);liveWatch=null;}
   clearInterval(liveTicker);liveOn=false;
