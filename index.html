@@ -287,10 +287,15 @@ tr:last-child td{border-bottom:none;}
           <div id="g-allure-bars"></div>
         </div>
         <div class="chart-wrap">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px;">
-            <div class="chart-title" style="margin:0;">Distance par mois (km)</div>
-<select id="monthly-year" style="display:none;"></select>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;flex-wrap:wrap;gap:8px;">
+            <div class="chart-title" style="margin:0;" id="g-chart-title">Distance par mois (km)</div>
+            <div style="display:flex;gap:5px;" id="g-type-pills">
+              <button onclick="window._gType='all';renderGlobalTab();" id="tp-all"   style="border:none;border-radius:16px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;">Tous</button>
+              <button onclick="window._gType='cheval';renderGlobalTab();" id="tp-cheval" style="border:none;border-radius:16px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--muted);">À cheval</button>
+              <button onclick="window._gType='pied';renderGlobalTab();" id="tp-pied"   style="border:none;border-radius:16px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--muted);">À pied</button>
+            </div>
           </div>
+<select id="monthly-year" style="display:none;"></select>
           <canvas id="chart-monthly" style="height:420px;max-height:420px;"></canvas>
         </div>
 
@@ -1007,103 +1012,140 @@ function renderGlobalTab(){
 
 
 const MONTH_NAMES=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MONTH_SHORT=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 const TYPE_COLORS={pied:'#4f8ef7',cheval:'#91c8f7'};
 const TYPE_LABELS={pied:'À pied',cheval:'À cheval'};
+const YEAR_PALETTE=['#4f8ef7','#38d9a9','#f7a94f','#f76495','#c67ef7','#f7e24f','#5ce65c'];
+
 function renderMonthlyChart(){
   const y=window._gYear||'all';
+  const gType=window._gType||'all';
   const gc='rgba(46,54,80,.8)',tc='#7a82a0';
   const moKeys=['01','02','03','04','05','06','07','08','09','10','11','12'];
-  const mo={};
-  moKeys.forEach(k=>{mo[k]={pied:0,cheval:0};});
-  // Filter by selected year or sum all
-  const filtered=y==='all'?traces:traces.filter(t=>t.meta.date?.startsWith(y));
-  filtered.forEach(t=>{
-    if(!t.meta.date)return;
-    const mn=t.meta.date.slice(5,7);
-    if(mo[mn]&&mo[mn][t.meta.type]!==undefined)mo[mn][t.meta.type]+=(t.points?t.stats.dist/1000:t.textData.distKm);
-  });
-  // Compute sorties count per month for the filtered period
-  const moCount={};
-  moKeys.forEach(k=>{moCount[k]=0;});
-  filtered.forEach(t=>{
-    if(!t.meta.date)return;
-    const mn=t.meta.date.slice(5,7);
-    if(moCount[mn]!==undefined)moCount[mn]++;
+
+  // Update type pill styles
+  ['all','cheval','pied'].forEach(tp=>{
+    const el=document.getElementById('tp-'+tp);if(!el)return;
+    const active=gType===tp;
+    el.style.background=active?'var(--accent)':'var(--surface2)';
+    el.style.color=active?'#fff':'var(--muted)';
   });
 
-  const types=['cheval','pied'];
   if(chartMonthly)chartMonthly.destroy();
-  chartMonthly=new Chart(document.getElementById('chart-monthly'),{
-    type:'bar',
-    data:{
-      labels:MONTH_NAMES.map(m=>m.slice(0,3)),
-      datasets:types.map(tp=>({
-        label:TYPE_LABELS[tp],
-        data:moKeys.map(k=>+mo[k][tp].toFixed(1)),
-        backgroundColor:TYPE_COLORS[tp],
-        borderRadius:4,borderWidth:0,
-      }))
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{
-        legend:{labels:{color:tc,boxWidth:12,padding:16}},
-        tooltip:{enabled:false},
-      },
-      scales:{
-        x:{stacked:true,ticks:{color:tc,font:{size:12}},grid:{color:gc}},
-        y:{stacked:true,ticks:{color:tc,callback:v=>v+' km'},grid:{color:gc},min:0}
-      },
-      animation:{duration:300},
-      layout:{padding:{top:36}}
-    },
-    plugins:[{
-      id:'stackLabels',
-      afterDatasetsDraw(chart){
-        const{ctx,data,scales:{x,y}}=chart;
-        ctx.save();
-        // Compute totals
-        const totals=Array(12).fill(0);
-        data.datasets.forEach(ds=>{ds.data.forEach((v,i)=>totals[i]+=v||0);});
-        const topMeta=chart.getDatasetMeta(data.datasets.length-1);
 
-        totals.forEach((tot,i)=>{
-          const bar=topMeta.data[i];if(!bar)return;
-          const barTop=y.getPixelForValue(tot);
-
-          // Total km above bar
-          if(tot>0){
-            ctx.fillStyle='#e8eaf2';ctx.font='bold 11px Inter,system-ui,sans-serif';
-            ctx.textAlign='center';ctx.textBaseline='bottom';
-            ctx.fillText(tot.toFixed(1)+'km',bar.x,barTop-4);
-          }
-
-          // Sorties count above km total
-          const n=moCount[moKeys[i]]||0;
-          if(n>0){
-            ctx.fillStyle=tc;ctx.font='10px Inter,system-ui,sans-serif';
-            ctx.textAlign='center';ctx.textBaseline='bottom';
-            ctx.fillText(n+' sortie'+(n>1?'s':''),bar.x,barTop-17);
-          }
+  if(y==='all'){
+    // LINE CHART: one line per year
+    document.getElementById('g-chart-title').textContent='Distance par mois — comparaison par année (km)';
+    const years=[...new Set(traces.map(t=>t.meta.date?.slice(0,4)).filter(Boolean))].sort();
+    const datasets=years.map((yr,idx)=>{
+      const data=moKeys.map(mn=>{
+        const trs=traces.filter(t=>{
+          if(!t.meta.date?.startsWith(yr))return false;
+          if(gType!=='all'&&t.meta.type!==gType)return false;
+          return t.meta.date.slice(5,7)===mn;
         });
-
-        // Per-segment value inside bar
-        data.datasets.forEach((ds,di)=>{
-          const meta=chart.getDatasetMeta(di);
-          ds.data.forEach((v,i)=>{
-            if(!v||v<4)return;
-            const bar=meta.data[i];if(!bar)return;
-            const mid=(bar.y+bar.y+bar.height)/2;
-            ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='10px Inter,system-ui,sans-serif';
-            ctx.textAlign='center';ctx.textBaseline='middle';
-            ctx.fillText(v.toFixed(1),bar.x,mid);
-          });
-        });
-        ctx.restore();
+        return +trs.reduce((a,t)=>a+(t.points?t.stats.dist/1000:t.textData.distKm),0).toFixed(1);
+      });
+      const color=YEAR_PALETTE[idx%YEAR_PALETTE.length];
+      return{label:yr,data,borderColor:color,backgroundColor:color+'33',
+        borderWidth:2.5,pointRadius:4,pointHoverRadius:6,fill:false,tension:.3};
+    });
+    chartMonthly=new Chart(document.getElementById('chart-monthly'),{
+      type:'line',
+      data:{labels:MONTH_SHORT,datasets},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{labels:{color:tc,boxWidth:12,padding:14}},
+          tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y} km`}},
+        },
+        scales:{
+          x:{ticks:{color:tc,font:{size:12}},grid:{color:gc}},
+          y:{ticks:{color:tc,callback:v=>v+' km'},grid:{color:gc},min:0}
+        },
+        animation:{duration:300}
       }
-    }]
-  });
+    });
+
+  } else {
+    // BAR CHART: single year stacked by type
+    document.getElementById('g-chart-title').textContent=`Distance par mois ${y} (km)`;
+    const mo={};
+    moKeys.forEach(k=>{mo[k]={pied:0,cheval:0};});
+    const moCount={};moKeys.forEach(k=>{moCount[k]=0;});
+    traces.filter(t=>t.meta.date?.startsWith(y)).forEach(t=>{
+      if(!t.meta.date)return;
+      const mn=t.meta.date.slice(5,7);
+      if(gType!=='all'&&t.meta.type!==gType)return;
+      if(mo[mn]!==undefined){
+        mo[mn][t.meta.type]=(mo[mn][t.meta.type]||0)+(t.points?t.stats.dist/1000:t.textData.distKm);
+        moCount[mn]++;
+      }
+    });
+    const types=gType==='all'?['cheval','pied']:[gType];
+    chartMonthly=new Chart(document.getElementById('chart-monthly'),{
+      type:'bar',
+      data:{
+        labels:MONTH_SHORT,
+        datasets:types.map(tp=>({
+          label:TYPE_LABELS[tp],
+          data:moKeys.map(k=>+mo[k][tp].toFixed(1)),
+          backgroundColor:TYPE_COLORS[tp],
+          borderRadius:4,borderWidth:0,
+        }))
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{labels:{color:tc,boxWidth:12,padding:16}},
+          tooltip:{enabled:false},
+        },
+        scales:{
+          x:{stacked:true,ticks:{color:tc,font:{size:12}},grid:{color:gc}},
+          y:{stacked:true,ticks:{color:tc,callback:v=>v+' km'},grid:{color:gc},min:0}
+        },
+        animation:{duration:300},
+        layout:{padding:{top:36}}
+      },
+      plugins:[{
+        id:'stackLabels',
+        afterDatasetsDraw(chart){
+          const{ctx,data,scales:{x,y}}=chart;
+          ctx.save();
+          const totals=Array(12).fill(0);
+          data.datasets.forEach(ds=>{ds.data.forEach((v,i)=>totals[i]+=v||0);});
+          const topMeta=chart.getDatasetMeta(data.datasets.length-1);
+          totals.forEach((tot,i)=>{
+            const bar=topMeta.data[i];if(!bar)return;
+            const barTop=y.getPixelForValue(tot);
+            if(tot>0){
+              ctx.fillStyle='#e8eaf2';ctx.font='bold 11px Inter,system-ui,sans-serif';
+              ctx.textAlign='center';ctx.textBaseline='bottom';
+              ctx.fillText(tot.toFixed(1)+'km',bar.x,barTop-4);
+            }
+            const n=moCount[moKeys[i]]||0;
+            if(n>0){
+              ctx.fillStyle=tc;ctx.font='10px Inter,system-ui,sans-serif';
+              ctx.textAlign='center';ctx.textBaseline='bottom';
+              ctx.fillText(n+' sortie'+(n>1?'s':''),bar.x,barTop-17);
+            }
+          });
+          data.datasets.forEach((ds,di)=>{
+            const meta=chart.getDatasetMeta(di);
+            ds.data.forEach((v,i)=>{
+              if(!v||v<4)return;
+              const bar=meta.data[i];if(!bar)return;
+              const mid=(bar.y+bar.y+bar.height)/2;
+              ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='10px Inter,system-ui,sans-serif';
+              ctx.textAlign='center';ctx.textBaseline='middle';
+              ctx.fillText(v.toFixed(1),bar.x,mid);
+            });
+          });
+          ctx.restore();
+        }
+      }]
+    });
+  }
 }
 
 // kept as no-op so renderGlobalTab doesn't break
