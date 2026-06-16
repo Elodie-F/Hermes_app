@@ -1098,52 +1098,38 @@ function renderMonthlyChart(){
         responsive:true,maintainAspectRatio:false,
         plugins:{
           legend:{labels:{color:tc,boxWidth:12,padding:16}},
-          tooltip:{enabled:false},
+          tooltip:{
+            mode:'index',intersect:false,
+            backgroundColor:'rgba(15,18,25,.95)',
+            borderColor:'rgba(46,54,80,.8)',borderWidth:1,
+            titleColor:'#e8eaf2',bodyColor:'#7a82a0',
+            padding:12,
+            callbacks:{
+              title:items=>{
+                const i=items[0].dataIndex;
+                const n=moCount[moKeys[i]]||0;
+                const tot=types.reduce((a,tp)=>a+(mo[moKeys[i]][tp]||0),0);
+                return `${MONTH_NAMES[i]} — ${tot.toFixed(1)} km · ${n} sortie${n>1?'s':''}`;
+              },
+              label:ctx=>`${ctx.dataset.label} : ${ctx.parsed.y} km`,
+              afterLabel:ctx=>{
+                // show % of total
+                const i=ctx.dataIndex;
+                const tot=types.reduce((a,tp)=>a+(mo[moKeys[i]][tp]||0),0);
+                if(!tot||types.length<2)return '';
+                const pct=Math.round(ctx.parsed.y/tot*100);
+                return `  → ${pct}%`;
+              }
+            }
+          },
         },
         scales:{
           x:{stacked:true,ticks:{color:tc,font:{size:12}},grid:{color:gc}},
           y:{stacked:true,ticks:{color:tc,callback:v=>v+' km'},grid:{color:gc},min:0}
         },
         animation:{duration:300},
-        layout:{padding:{top:36}}
-      },
-      plugins:[{
-        id:'stackLabels',
-        afterDatasetsDraw(chart){
-          const{ctx,data,scales:{x,y}}=chart;
-          ctx.save();
-          const totals=Array(12).fill(0);
-          data.datasets.forEach(ds=>{ds.data.forEach((v,i)=>totals[i]+=v||0);});
-          const topMeta=chart.getDatasetMeta(data.datasets.length-1);
-          totals.forEach((tot,i)=>{
-            const bar=topMeta.data[i];if(!bar)return;
-            const barTop=y.getPixelForValue(tot);
-            if(tot>0){
-              ctx.fillStyle='#e8eaf2';ctx.font='bold 11px Inter,system-ui,sans-serif';
-              ctx.textAlign='center';ctx.textBaseline='bottom';
-              ctx.fillText(tot.toFixed(1)+'km',bar.x,barTop-4);
-            }
-            const n=moCount[moKeys[i]]||0;
-            if(n>0){
-              ctx.fillStyle=tc;ctx.font='10px Inter,system-ui,sans-serif';
-              ctx.textAlign='center';ctx.textBaseline='bottom';
-              ctx.fillText(n+' sortie'+(n>1?'s':''),bar.x,barTop-17);
-            }
-          });
-          data.datasets.forEach((ds,di)=>{
-            const meta=chart.getDatasetMeta(di);
-            ds.data.forEach((v,i)=>{
-              if(!v||v<4)return;
-              const bar=meta.data[i];if(!bar)return;
-              const mid=(bar.y+bar.y+bar.height)/2;
-              ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='10px Inter,system-ui,sans-serif';
-              ctx.textAlign='center';ctx.textBaseline='middle';
-              ctx.fillText(v.toFixed(1),bar.x,mid);
-            });
-          });
-          ctx.restore();
-        }
-      }]
+        layout:{padding:{top:4}}
+      }
     });
   }
 }
