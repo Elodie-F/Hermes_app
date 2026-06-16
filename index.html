@@ -228,7 +228,8 @@ tr:last-child td{border-bottom:none;}
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
             <span>Intervalle entre points</span>
             <select id="cfg-freq" onchange="saveFreqConfig()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 8px;">
-              <option value="10" selected>10 sec</option>
+              <option value="5" selected>5 sec</option>
+              <option value="10">10 sec</option>
               <option value="20">20 sec</option>
               <option value="30">30 sec</option>
               <option value="60">1 min</option>
@@ -495,7 +496,7 @@ function loadAllureConfig(){
     document.getElementById('cfg-trot').value=trot;
     document.getElementById('cfg-galop').value='≥ '+trot;
     ALLURES=buildAllures(walk,trot);
-    const freq=saved.freq||10;
+    const freq=saved.freq||5;
     liveFreqSec=freq;
     const freqSel=document.getElementById('cfg-freq');
     if(freqSel)freqSel.value=freq;
@@ -750,7 +751,7 @@ function confirmText(){
 
 // ── LIVE RECORDING ─────────────────────────────────────────────────────────
 let liveOn=false,liveWatch=null,livePts=[],liveStart=null,liveLayer=null,liveMarker=null,liveTicker=null,liveLast=null,liveDist=0;
-let liveFreqSec=10, liveLastRecorded=null;
+let liveFreqSec=5, liveLastRecorded=null;
 function toggleRecording(){if(!liveOn)startLive();else stopLive();}
 function startLive(){
   if(!navigator.geolocation){
@@ -770,8 +771,7 @@ function _doStartLive(){
   document.getElementById('btn-live').disabled=false;
   livePts=[];liveDist=0;liveLast=null;liveLastRecorded=null;liveStart=Date.now();
   liveLayer=L.layerGroup().addTo(map);
-  const icon=L.divIcon({html:`<div style="width:15px;height:15px;border-radius:50%;background:var(--danger);border:3px solid #fff;box-shadow:0 0 0 4px rgba(247,100,149,.3)"></div>`,iconSize:[15,15],iconAnchor:[7,7],className:''});
-  liveMarker=L.marker([0,0],{icon,zIndexOffset:1000});
+  liveMarker=null; // will be created on first real GPS point
   liveWatch=navigator.geolocation.watchPosition(onGps,gpsErr,{enableHighAccuracy:true,maximumAge:60000,timeout:15000});
   liveOn=true;
   document.getElementById('btn-live').className='btn-live recording';
@@ -800,19 +800,25 @@ function onGps(pos){
   const now=Date.now();
   const shouldRecord=!liveLastRecorded||(now-liveLastRecorded)>=liveFreqSec*1000;
 
-  // Always update marker position and speed display
-  if(!liveMarker._map)liveMarker.addTo(map);
-  liveMarker.setLatLng([lat,lon]);
-  if(mapVisible)map.panTo([lat,lon],{animate:true,duration:0.5});
+  // Create or update position marker
+  if(!liveMarker){
+    // First point: create marker and center map
+    const icon=L.divIcon({html:`<div style="width:15px;height:15px;border-radius:50%;background:var(--danger);border:3px solid #fff;box-shadow:0 0 0 4px rgba(247,100,149,.3)"></div>`,iconSize:[15,15],iconAnchor:[7,7],className:''});
+    liveMarker=L.marker([lat,lon],{icon,zIndexOffset:1000}).addTo(map);
+    map.setView([lat,lon],15);
+  } else {
+    liveMarker.setLatLng([lat,lon]);
+    if(mapVisible)map.panTo([lat,lon],{animate:true,duration:0.5});
+  }
 
-  // Compute instantaneous speed for HUD (from device or from last recorded pt)
+  // Update speed in HUD
   if(liveLast){
     const dt=(time-liveLast.time)/1000;
     const kmh=dt>0?haversine(liveLast,pt)/dt*3.6:0;
     document.getElementById('hud-spd').textContent=(speed!=null?(speed*3.6).toFixed(1):kmh.toFixed(1))+' km/h';
   }
 
-  // Only record point and draw segment at configured frequency
+  // Record point and draw segment at configured frequency
   if(shouldRecord){
     if(liveLast){
       const d=haversine(liveLast,pt);liveDist+=d;
@@ -854,7 +860,7 @@ function saveLive(){
   const name=document.getElementById('lm-name').value.trim()||'Sortie live';
   closeModal('modal-live');
   const stats=computeStats(livePts);const color=COLORS[traces.length%COLORS.length];
-  if(liveMarker&&liveMarker._map)liveMarker.remove();
+  if(liveMarker&&liveMarker.remove)liveMarker.remove();
   traces.push({source:'live',name,color,meta,points:livePts,layers:liveLayer,stats});
   selectedIdx=traces.length-1;liveLayer=null;
   saveStorage();renderAll();resetLiveUI();
@@ -862,7 +868,7 @@ function saveLive(){
 function discardLive(){
   closeModal('modal-live');
   if(liveLayer){liveLayer.remove();liveLayer=null;}
-  if(liveMarker&&liveMarker._map)liveMarker.remove();
+  if(liveMarker&&liveMarker.remove)liveMarker.remove();
   resetLiveUI();
 }
 function resetLiveUI(){
