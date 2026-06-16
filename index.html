@@ -774,19 +774,12 @@ function _doStartLive(){
   liveLayer=L.layerGroup().addTo(map);
   liveMarker=null;liveAccCircle=null;
 
-  // Primary: watchPosition
-  liveWatch=navigator.geolocation.watchPosition(onGps, gpsErrSilent,
-    {enableHighAccuracy:true, maximumAge:4000, timeout:30000});
-
-  // Fallback: if watchPosition stops firing, getCurrentPosition every N seconds
-  liveWatchFallback=setInterval(()=>{
-    const elapsed=liveLastRecorded?Date.now()-liveLastRecorded:Infinity;
-    // If no point recorded since 2x the interval, force a fresh request
-    if(elapsed >= liveFreqSec*1000*2){
-      navigator.geolocation.getCurrentPosition(onGps, gpsErrSilent,
-        {enableHighAccuracy:true, maximumAge:0, timeout:10000});
-    }
-  }, liveFreqSec*1000);
+  function askGps(){
+    navigator.geolocation.getCurrentPosition(onGps, gpsErrSilent,
+      {enableHighAccuracy:true, maximumAge:0, timeout:15000});
+  }
+  askGps(); // first point immediately
+  liveWatch=setInterval(askGps, liveFreqSec*1000); // then every N sec exactly
 
   liveOn=true;
   document.getElementById('btn-live').className='btn-live recording';
@@ -797,7 +790,11 @@ function _doStartLive(){
   document.querySelector('.map-section').scrollIntoView({behavior:'smooth'});
   liveTicker=setInterval(()=>{const s=Math.floor((Date.now()-liveStart)/1000);document.getElementById('hud-dur').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;},1000);
 }
-function gpsErrSilent(e){console.warn('GPS error:',e.code,e.message);}
+function gpsErrSilent(e){
+  liveGpsCalls++;
+  if(document.getElementById('hud-calls'))document.getElementById('hud-calls').textContent=liveGpsCalls+'⚠';
+  console.warn('GPS error:',e.code,e.message);
+}
 function _gpsPermErr(e){
   document.getElementById('btn-live').disabled=false;
   document.getElementById('live-label').textContent='⏺ Record';
@@ -864,7 +861,7 @@ function gpsErr(e){
   if(e.code===1){ stopLive(); alert(msgs[1]); }
 }
 function stopLive(){
-  if(liveWatch!=null){navigator.geolocation.clearWatch(liveWatch);liveWatch=null;}
+  if(liveWatch!=null){clearInterval(liveWatch);liveWatch=null;}
   if(liveWatchFallback!=null){clearInterval(liveWatchFallback);liveWatchFallback=null;}
   clearInterval(liveTicker);liveOn=false;
   document.getElementById('btn-live').className='btn-live';
