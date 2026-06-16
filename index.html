@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1219">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Hermès</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1219;--surface:#1a1f2e;--surface2:#242b3d;--border:#2e3650;
+  --accent:#4f8ef7;--accent2:#38d9a9;--warn:#f7a94f;--danger:#f76495;
+  --text:#e8eaf2;--muted:#7a82a0;--font:'Inter',system-ui,sans-serif;--radius:12px;
+  --c-trot:#f7a94f;--c-galop:#f76495;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;}
+body{min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;position:sticky;top:0;z-index:1000;}
+.topbar h1{font-size:17px;font-weight:700;letter-spacing:-.3px;margin-right:auto;}
+.topbar h1 span{color:var(--accent);}
+#storage-indicator{font-size:12px;color:var(--muted);}
+.btn-live{background:var(--accent2);color:#0f1219;border:none;border-radius:var(--radius);padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;transition:opacity .15s;}
+.btn-live:hover{opacity:.85;}
+.btn-live.recording{background:#2e1a1a;color:var(--danger);border:1px solid var(--danger);animation:pulse-border 1.2s infinite;}
+.btn-hist{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;position:relative;}
+.btn-hist:hover{background:#2e3650;}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:none;}
+.rec-dot.on{display:inline-block;animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+@keyframes pulse-border{0%,100%{box-shadow:0 0 0 0 rgba(247,100,149,.4);}50%{box-shadow:0 0 0 6px rgba(247,100,149,0);}}
+
+/* hist dropdown */
+.hist-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);min-width:180px;z-index:200;overflow:hidden;}
+.hist-menu.open{display:block;}
+.hist-item{padding:10px 14px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text);}
+.hist-item:hover{background:var(--surface2);}
+
+/* ── MAIN SCROLL ── */
+main{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:1rem;}
+
+/* ── LIVE HUD ── */
+.live-hud{background:var(--surface);border:1px solid var(--danger);border-radius:var(--radius);padding:.75rem 1rem;display:none;gap:1rem;flex-wrap:wrap;}
+.live-hud.on{display:flex;}
+.hud-cell{display:flex;flex-direction:column;gap:2px;}
+.hud-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+.hud-val{font-size:20px;font-weight:700;color:var(--text);}
+.hud-val.green{color:var(--accent2);}
+
+/* ── MAP SECTION ── */
+.map-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.map-header{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;cursor:pointer;user-select:none;}
+.map-header span{font-size:14px;font-weight:600;}
+.map-toggle{font-size:12px;color:var(--muted);}
+#map{height:340px;transition:height .25s;}
+#map.collapsed{height:0;}
+
+/* map legend overlay */
+.map-legend{position:absolute;bottom:12px;right:12px;z-index:500;background:rgba(26,31,46,.92);border:1px solid var(--border);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;gap:5px;}
+.legend-row{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text);}
+.legend-line{width:20px;height:4px;border-radius:2px;flex-shrink:0;}
+.map-wrap{position:relative;}
+
+/* trace list below map */
+.trace-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.trace-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.trace-meta{font-size:11px;color:var(--muted);white-space:nowrap;}
+.action-btn{background:none;border:none;cursor:pointer;font-size:15px;padding:2px 4px;border-radius:5px;transition:background .12s;}
+.action-btn:hover{background:var(--surface2);}
+.synth-wrap table tbody tr{cursor:pointer;}
+.synth-wrap table tbody tr:hover{background:var(--surface2);}
+.empty-hint{color:var(--muted);font-size:13px;padding:8px 4px;}
+
+/* ── STATS SECTION ── */
+.stats-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.stats-tabs{display:flex;border-bottom:1px solid var(--border);}
+.stab{flex:1;background:none;border:none;color:var(--muted);font-size:13px;font-weight:500;padding:.65rem .5rem;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.stab.active{color:var(--text);border-bottom-color:var(--accent);}
+.tab-panel{display:none;padding:1rem;flex-direction:column;gap:1rem;}
+.tab-panel.active{display:flex;}
+
+/* stat cards */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;}
+.stat-card{background:var(--surface2);border-radius:10px;padding:.85rem;}
+.stat-label{font-size:11px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.03em;}
+.stat-val{font-size:21px;font-weight:700;line-height:1;}
+.stat-unit{font-size:12px;color:var(--muted);font-weight:400;margin-left:2px;}
+.c-accent{color:var(--accent);}
+.c-green{color:var(--accent2);}
+.c-warn{color:var(--warn);}
+
+/* tooltip */
+.tip{position:relative;display:inline-block;}
+.tip .tip-box{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1f2e;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);line-height:1.5;width:230px;z-index:999;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.4);}
+.tip .tip-box::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#2e3650;}
+.tip:hover .tip-box,.tip:focus .tip-box{display:block;}
+
+/* allure bars */
+.allure-wrap{background:var(--surface2);border-radius:10px;padding:.85rem;display:flex;flex-direction:column;gap:8px;}
+.allure-title{font-size:13px;color:var(--muted);margin-bottom:2px;}
+.allure-row{display:flex;align-items:center;gap:8px;font-size:13px;}
+.allure-label{width:46px;color:var(--text);flex-shrink:0;}
+.allure-track{flex:1;background:var(--border);border-radius:4px;height:7px;overflow:hidden;}
+.allure-fill{height:100%;border-radius:4px;}
+.allure-pct{width:32px;text-align:right;color:var(--muted);flex-shrink:0;font-size:12px;}
+.allure-dur{width:48px;text-align:right;color:var(--muted);font-size:11px;flex-shrink:0;}
+.allure-dist{width:48px;text-align:right;color:var(--muted);font-size:11px;flex-shrink:0;}
+
+/* chart */
+.chart-wrap{background:var(--surface2);border-radius:10px;padding:.85rem;}
+.chart-title{font-size:13px;color:var(--muted);margin-bottom:.6rem;}
+canvas{max-height:200px;}
+
+/* trace selector */
+.trace-sel select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:6px 10px;width:100%;}
+
+/* badges */
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
+.badge-pied{background:rgba(79,142,247,.2);color:#4f8ef7;}
+.badge-cheval{background:rgba(247,169,79,.2);color:#f7a94f;}
+
+
+/* comment */
+.comment-box{background:var(--surface2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--muted);font-style:italic;line-height:1.5;}
+
+/* notice */
+.notice{background:var(--surface2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--muted);}
+
+/* synthèse table */
+.synth-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{color:var(--muted);font-weight:500;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:7px 8px;border-bottom:1px solid rgba(46,54,80,.4);white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+
+/* year filter */
+.year-sel{display:flex;gap:8px;align-items:center;}
+.year-sel label{font-size:13px;color:var(--muted);}
+.year-sel select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:5px 10px;}
+
+/* no data */
+.no-data{display:flex;flex-direction:column;align-items:center;gap:10px;padding:2rem;color:var(--muted);font-size:14px;}
+.no-data svg{opacity:.25;}
+
+/* ── MODALS ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:3000;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;width:360px;max-width:95vw;display:flex;flex-direction:column;gap:1rem;max-height:92vh;overflow-y:auto;}
+.modal h2{font-size:16px;font-weight:600;}
+.modal-src{font-size:12px;color:var(--muted);background:var(--surface2);border-radius:6px;padding:3px 10px;display:inline-block;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;color:var(--muted);}
+.field input,.field select,.field textarea{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:8px 10px;font-family:var(--font);width:100%;}
+.field textarea{resize:vertical;min-height:65px;}
+.field-row{display:flex;gap:8px;}
+.field-row .field{flex:1;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+.mbtn{border:none;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:600;cursor:pointer;}
+.mbtn-primary{background:var(--accent);color:#fff;}
+.mbtn-ghost{background:var(--surface2);color:var(--muted);}
+
+/* synthesis table */
+.stbl{border-collapse:collapse;font-size:12px;white-space:nowrap;}
+.stbl th{color:var(--muted);font-weight:500;padding:5px 10px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid var(--border);}
+.stbl th.lbl{text-align:left;}
+.stbl th.year-hd{text-align:center;color:var(--text);font-weight:700;border-bottom:2px solid var(--border);padding:6px 10px;}
+.stbl td{padding:5px 10px;text-align:right;border-bottom:1px solid rgba(46,54,80,.4);border-right:1px solid rgba(46,54,80,.25);color:var(--text);}
+.stbl td.lbl{text-align:left;color:var(--muted);font-weight:500;}
+.stbl tr:hover td{background:rgba(79,142,247,.06);}
+.stbl tr.total-row td{border-top:2px solid var(--border);font-weight:700;color:var(--text);background:rgba(36,43,61,.6);}
+.stbl tr.summary-row td{font-size:11px;color:var(--muted);background:rgba(36,43,61,.3);}
+.stbl td.zero{color:var(--border);}
+.stbl .c-pied{color:var(--accent);}
+.stbl .c-cheval{color:#91c8f7;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══════════════════════════════════════════════════════════════ -->
+<div class="topbar">
+  <h1>🐴 Hermès</h1>
+  <span id="storage-indicator"></span>
+
+  <!-- Sortie live -->
+  <button class="btn-live" id="btn-live" onclick="toggleRecording()">
+    <span class="rec-dot" id="rec-dot"></span>
+    <span id="live-label">⏺ Record</span>
+  </button>
+
+  <!-- Settings button -->
+  <div style="position:relative;">
+    <button class="btn-hist" onclick="toggleSettingsMenu(event)" title="Paramètres">⚙</button>
+    <div class="hist-menu" id="settings-menu">
+      <div style="padding:10px 14px 4px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Seuils d'allure</div>
+      <div style="padding:6px 14px 12px;display:flex;flex-direction:column;gap:10px;min-width:220px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#38d9a9;display:inline-block;"></span>Pas en-dessous de</span>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <input id="cfg-walk" type="number" min="1" max="50" step="0.5" value="7.5" oninput="applyAllureConfig()" style="width:56px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 6px;text-align:right;">
+            <span style="font-size:12px;color:var(--muted);">km/h</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#f7a94f;display:inline-block;"></span>Trot en-dessous de</span>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <input id="cfg-trot" type="number" min="1" max="80" step="0.5" value="30" oninput="applyAllureConfig()" style="width:56px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 6px;text-align:right;">
+            <span style="font-size:12px;color:var(--muted);">km/h</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#f76495;display:inline-block;"></span>Galop au-delà</span>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <input id="cfg-galop" type="text" value="≥ 30" disabled style="width:56px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:13px;padding:3px 6px;text-align:right;">
+            <span style="font-size:12px;color:var(--muted);">km/h</span>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Fréquence GPS (Record)</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+            <span>Intervalle entre points</span>
+            <select id="cfg-freq" onchange="saveFreqConfig()" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 8px;">
+              <option value="10" selected>10 sec</option>
+              <option value="20">20 sec</option>
+              <option value="30">30 sec</option>
+              <option value="60">1 min</option>
+            </select>
+          </div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.4;">La position est quand même mise à jour sur la carte en temps réel, seuls les points enregistrés sont espacés.</div>
+          <div style="display:flex;justify-content:flex-end;">
+            <button onclick="resetAllureConfig()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 4px;">↺ Réinitialiser seuils</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historique dropdown -->
+  <div style="position:relative;">
+    <button class="btn-hist" onclick="toggleHistMenu(event)">📁 Historique ▾</button>
+    <div class="hist-menu" id="hist-menu">
+      <div class="hist-item" onclick="openGpxPicker()">📂 Importer un GPX</div>
+      <div class="hist-item" onclick="openTextModal()">✏️ Saisie manuelle</div>
+      <div class="hist-item" onclick="openPasteModal()">📋 Coller un tableau</div>
+    </div>
+    <input type="file" id="file-input" accept=".gpx" multiple style="display:none">
+  </div>
+</div>
+
+<!-- ══ MAIN ═════════════════════════════════════════════════════════════════ -->
+<main id="main">
+
+  <!-- Live HUD -->
+  <div class="live-hud" id="live-hud">
+    <div class="hud-cell"><div class="hud-label">Durée</div><div class="hud-val" id="hud-dur">0:00</div></div>
+    <div class="hud-cell"><div class="hud-label">Distance</div><div class="hud-val" id="hud-dist">0.00 km</div></div>
+    <div class="hud-cell"><div class="hud-label">Vitesse</div><div class="hud-val green" id="hud-spd">— km/h</div></div>
+    <div class="hud-cell"><div class="hud-label">Points GPS</div><div class="hud-val" id="hud-pts">0</div></div>
+  </div>
+
+  <!-- Map section -->
+  <div class="map-section">
+    <div class="map-header" onclick="toggleMap()">
+      <span>🗺 Carte</span>
+      <span class="map-toggle" id="map-toggle-lbl">Masquer ▲</span>
+    </div>
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="map-legend" id="map-legend">
+        <div class="legend-row"><div class="legend-line" style="background:var(--c-trot)"></div>Trot &lt;35</div>
+        <div class="legend-row"><div class="legend-line" style="background:var(--c-galop)"></div>Galop ≥35</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats section -->
+  <div class="stats-section">
+    <div class="stats-tabs">
+      <button class="stab active" onclick="showTab('global',this)">Statistiques</button>
+      <button class="stab" onclick="showTab('synthese',this)">Détail</button>
+    </div>
+
+    <!-- ── Global ── -->
+    <div class="tab-panel active" id="tab-global">
+      <div id="no-global" class="no-data">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        Aucune donnée
+      </div>
+      <div id="global-content" style="display:none;flex-direction:column;gap:1rem;">
+        <div class="stats-grid" id="g-grid"></div>
+        <div class="allure-wrap">
+          <div class="allure-title">Allures <span class="tip" tabindex="0" style="cursor:help;"><span style="font-size:12px;color:var(--muted);border-bottom:1px dashed var(--muted);">ⓘ</span><span class="tip-box">Calculé uniquement à partir des traces GPS live et des fichiers GPX. Les saisies manuelles ne sont pas incluses.</span></span></div>
+          <div id="g-allure-bars"></div>
+        </div>
+        <div class="chart-wrap">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px;">
+            <div class="chart-title" style="margin:0;">Distance par mois (km)</div>
+            <select id="monthly-year" onchange="renderMonthlyChart()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:4px 10px;"></select>
+          </div>
+          <canvas id="chart-monthly" style="max-height:320px;"></canvas>
+        </div>
+        <div class="chart-wrap" style="padding:.85rem;">
+          <div class="chart-title" style="margin-bottom:.85rem;">Tableau de synthèse</div>
+          <div id="synth-table-wrap" style="overflow-x:auto;">
+            <div class="no-data" style="padding:1rem;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+              Aucune donnée
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Détail ── -->
+    <div class="tab-panel" id="tab-synthese">
+      <div id="no-synth" class="no-data">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        Aucune sortie enregistrée
+      </div>
+      <div id="synth-content" style="display:none;flex-direction:column;gap:1rem;">
+        <div class="year-sel">
+          <label>Année</label>
+          <select id="year-sel" onchange="renderSynthese()"><option value="all">Toutes</option></select>
+        </div>
+        <div class="synth-wrap">
+          <table id="synth-table">
+            <thead><tr>
+              <th></th><th>Date</th><th>Type</th>
+              <th>Distance</th><th>Durée</th><th>Moy.</th><th>Max</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="synth-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══ MODAL : PASTE IMPORT ═════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-paste">
+  <div class="modal" style="width:480px;">
+    <div class="modal-src">📋 Import depuis Google Sheets</div>
+    <h2>Coller un tableau</h2>
+    <p style="font-size:13px;color:var(--muted);line-height:1.5;">
+      Dans Google Sheets, sélectionne toutes tes lignes de données <strong style="color:var(--text);">(sans la ligne d'en-tête)</strong> et copie-colle ici.<br><br>
+      Colonnes attendues dans l'ordre :<br>
+      <code style="font-size:12px;color:var(--accent2);">Year · Month · Date · Distance (km) · Type · Temps · Détails</code>
+    </p>
+    <div class="field">
+      <label>Données collées</label>
+      <textarea id="paste-input" style="min-height:140px;font-family:monospace;font-size:12px;" placeholder="Colle ici le contenu copié depuis Google Sheets…"></textarea>
+    </div>
+    <div id="paste-preview" style="font-size:13px;color:var(--muted);"></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-ghost" onclick="closeModal('modal-paste')">Annuler</button>
+      <button class="mbtn mbtn-primary" onclick="confirmPaste()">Importer tout</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-live">
+  <div class="modal">
+    <div class="modal-src">⏺ Sortie live</div>
+    <h2>Sauvegarder la session</h2>
+    <div class="field"><label>Nom</label><input id="lm-name" type="text"></div>
+    <div class="field"><label>Type</label>
+      <select id="lm-type"><option value="pied">🚶 À pied</option><option value="cheval">🐴 À cheval</option></select>
+    </div>
+    <div class="field"><label>Commentaire</label><textarea id="lm-comment" placeholder="Notes…"></textarea></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-ghost" onclick="discardLive()">Abandonner</button>
+      <button class="mbtn mbtn-primary" onclick="saveLive()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL : GPX ══════════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-gpx">
+  <div class="modal">
+    <div class="modal-src">📂 Import GPX</div>
+    <h2>Nouvelle trace</h2>
+    <div class="field"><label>Nom</label><input id="gm-name" type="text"></div>
+    <div class="field"><label>Date</label><input id="gm-date" type="date"></div>
+    <div class="field"><label>Type</label>
+      <select id="gm-type"><option value="pied">🚶 À pied</option><option value="cheval">🐴 À cheval</option></select>
+    </div>
+    <div class="field"><label>Commentaire</label><textarea id="gm-comment" placeholder="Notes…"></textarea></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-ghost" onclick="closeModal('modal-gpx')">Annuler</button>
+      <button class="mbtn mbtn-primary" onclick="confirmGpx()">Importer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL : TEXT ══════════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-text">
+  <div class="modal">
+    <div class="modal-src">✏️ Saisie manuelle</div>
+    <h2>Ajouter une sortie</h2>
+    <div class="field"><label>Nom</label><input id="tm-name" type="text" placeholder="Sortie du dimanche"></div>
+    <div class="field"><label>Date</label><input id="tm-date" type="date"></div>
+    <div class="field"><label>Type</label>
+      <select id="tm-type"><option value="pied">🚶 À pied</option><option value="cheval">🐴 À cheval</option></select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Distance (km)</label><input id="tm-dist" type="number" min="0" step="0.1" placeholder="0.0"></div>
+      <div class="field"><label>Durée</label><input id="tm-dur" type="text" placeholder="1h30 ou 45m"></div>
+    </div>
+    <div class="field"><label>Commentaire</label><textarea id="tm-comment" placeholder="Notes…"></textarea></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-ghost" onclick="closeModal('modal-text')">Annuler</button>
+      <button class="mbtn mbtn-primary" onclick="confirmText()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ MODAL : DETAIL ══════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-detail">
+  <div class="modal">
+    <h2>Détail de la sortie</h2>
+    <div class="field"><label>Date</label><input id="dm-date" type="date"></div>
+    <div class="field"><label>Type</label>
+      <select id="dm-type"><option value="pied">🚶 À pied</option><option value="cheval">🐴 À cheval</option></select>
+    </div>
+    <div class="field"><label>Commentaire</label><textarea id="dm-comment" placeholder="Notes…"></textarea></div>
+    <div class="stats-grid" id="dm-stats" style="margin-top:.25rem;"></div>
+    <div class="allure-wrap" id="dm-allure-wrap" style="display:none;">
+      <div class="allure-title">Répartition par allure</div>
+      <div id="dm-allure-bars"></div>
+    </div>
+    <div class="chart-wrap" id="dm-speed-wrap" style="display:none;">
+      <div class="chart-title">Vitesse (km/h)</div>
+      <canvas id="dm-chart-speed" style="max-height:180px;"></canvas>
+    </div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-ghost" onclick="closeModal('modal-detail')">Fermer</button>
+      <button class="mbtn mbtn-primary" onclick="saveDetail()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+// ── ALLURE CONFIG ──────────────────────────────────────────────────────────
+const ALLURE_DEFAULTS={walk:7.5,trot:30};
+const ALLURE_COLORS={walk:'#38d9a9',trot:'#f7a94f',galop:'#f76495'};
+let ALLURES=buildAllures(ALLURE_DEFAULTS.walk, ALLURE_DEFAULTS.trot);
+function buildAllures(walk,trot){
+  return[
+    {key:'walk', label:'Pas',  color:ALLURE_COLORS.walk,  max:walk},
+    {key:'trot', label:'Trot', color:ALLURE_COLORS.trot,  max:trot},
+    {key:'galop',label:'Galop',color:ALLURE_COLORS.galop, max:Infinity},
+  ];
+}
+const COLORS=['#4f8ef7','#c67ef7','#f7e24f','#5ce65c','#e06cf7','#f76495','#38d9a9'];
+const SRC={live:'⏺',gpx:'📂',text:'✏️'};
+const LS_KEY='tracegps_v3';
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let traces=[], selectedIdx=null;
+let chartSpeed=null, chartMonthly=null;
+let pendingPoints=null, pendingStats=null, pendingFile=null;
+let mapVisible=true;
+
+
+// ── SETTINGS MENU ──────────────────────────────────────────────────────────
+const LS_CFG='hermes_cfg_v1';
+function toggleSettingsMenu(e){
+  e.stopPropagation();
+  const m=document.getElementById('settings-menu');
+  const opening=!m.classList.contains('open');
+  // close hist menu if open
+  document.getElementById('hist-menu').classList.remove('open');
+  m.classList.toggle('open');
+  if(opening) setTimeout(()=>document.addEventListener('click',closeSettingsOnBlur,{once:true}),0);
+}
+function closeSettingsOnBlur(e){
+  const m=document.getElementById('settings-menu');
+  if(!m.contains(e.target))m.classList.remove('open');
+}
+function loadAllureConfig(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(LS_CFG)||'{}');
+    const walk=saved.walk||ALLURE_DEFAULTS.walk;
+    const trot=saved.trot||ALLURE_DEFAULTS.trot;
+    document.getElementById('cfg-walk').value=walk;
+    document.getElementById('cfg-trot').value=trot;
+    document.getElementById('cfg-galop').value='≥ '+trot;
+    ALLURES=buildAllures(walk,trot);
+    const freq=saved.freq||10;
+    liveFreqSec=freq;
+    const freqSel=document.getElementById('cfg-freq');
+    if(freqSel)freqSel.value=freq;
+  }catch(e){}
+}
+function applyAllureConfig(){
+  const walk=parseFloat(document.getElementById('cfg-walk').value)||ALLURE_DEFAULTS.walk;
+  const trot=parseFloat(document.getElementById('cfg-trot').value)||ALLURE_DEFAULTS.trot;
+  const validTrot=Math.max(trot,walk+1);
+  document.getElementById('cfg-trot').value=validTrot;
+  document.getElementById('cfg-galop').value='≥ '+validTrot;
+  ALLURES=buildAllures(walk,validTrot);
+  try{localStorage.setItem(LS_CFG,JSON.stringify({walk,trot:validTrot}));}catch(e){}
+  // Rebuild all map layers
+  traces.forEach(t=>{
+    if(!t.points)return;
+    t.layers.remove();
+    t.layers=buildLayers(t.points,t.stats,t.color);
+  });
+  // Recompute allureTimes for all GPS traces
+  traces.forEach(t=>{
+    if(!t.points)return;
+    const at=Object.fromEntries(ALLURES.map(a=>[a.key,0]));
+    for(let i=1;i<t.points.length;i++){
+      if(t.points[i].time&&t.points[i-1].time){
+        const dt=(t.points[i].time-t.points[i-1].time)/1000;
+        const al=allureOf(t.stats.speeds[i-1]??0);
+        if(al)at[al.key]+=dt;
+      }
+    }
+    t.stats.allureTimes=at;
+  });
+  // Update legend
+  renderMapLegend();
+  // Refresh stats
+  renderGlobalTab();
+  // Refresh detail modal if open
+  if(detailIdx!==null&&document.getElementById('modal-detail').classList.contains('open'))openDetail(detailIdx);
+}
+function saveFreqConfig(){
+  const v=parseInt(document.getElementById('cfg-freq').value)||60;
+  liveFreqSec=v;
+  try{const cfg=JSON.parse(localStorage.getItem(LS_CFG)||'{}');cfg.freq=v;localStorage.setItem(LS_CFG,JSON.stringify(cfg));}catch(e){}
+}
+function resetAllureConfig(){
+  document.getElementById('cfg-walk').value=ALLURE_DEFAULTS.walk;
+  document.getElementById('cfg-trot').value=ALLURE_DEFAULTS.trot;
+  applyAllureConfig();
+}
+function renderMapLegend(){
+  document.getElementById('map-legend').innerHTML=
+    ALLURES.filter(a=>a.max!==Infinity).map(a=>`<div class="legend-row"><div class="legend-line" style="background:${a.color}"></div>${a.label} &lt;${a.max}</div>`).join('')+
+    `<div class="legend-row"><div class="legend-line" style="background:${ALLURE_COLORS.galop}"></div>Galop ≥${ALLURES[1].max}</div>`;
+}
+
+// ── MAP ────────────────────────────────────────────────────────────────────
+const map=L.map('map',{zoomControl:true}).setView([46.5,2.5],5);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'©OpenStreetMap ©CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
+setTimeout(()=>{loadAllureConfig();renderMapLegend();loadStorage();renderAll();},120);
+
+function toggleMap(){
+  mapVisible=!mapVisible;
+  document.getElementById('map').classList.toggle('collapsed',!mapVisible);
+  document.getElementById('map-toggle-lbl').textContent=mapVisible?'Masquer ▲':'Afficher ▼';
+  document.getElementById('map-legend').style.display=mapVisible?'flex':'none';
+  if(mapVisible)setTimeout(()=>map.invalidateSize(),260);
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function allureOf(v){if(v<=0.5)return null;return ALLURES.find(a=>v<=a.max)||ALLURES[ALLURES.length-1];}
+function haversine(a,b){
+  const R=6371000,r=Math.PI/180,dLa=(b.lat-a.lat)*r,dLo=(b.lon-a.lon)*r;
+  const x=Math.sin(dLa/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+function fmtDur(s){
+  if(s==null||s===0&&!s)return'—';
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60);
+  return h?`${h}h${String(m).padStart(2,'0')}`:`${m}m${String(sc).padStart(2,'0')}s`;
+}
+function parseDur(str){
+  if(!str||!str.trim())return null;
+  str=str.trim().toLowerCase();
+  const hhmm=str.match(/^(\d+):(\d{2})$/);if(hhmm)return +hhmm[1]*3600 + +hhmm[2]*60;
+  const hm=str.match(/^(\d+)h(\d+)?m?$/);if(hm)return(+hm[1]*60+(+hm[2]||0))*60;
+  const mo=str.match(/^(\d+)m$/);if(mo)return+mo[1]*60;
+  const ho=str.match(/^(\d+)h$/);if(ho)return+ho[1]*3600;
+  const n=parseFloat(str);return isNaN(n)?null:n*60;
+}
+function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;}
+function typeBadge(t){
+  const m={pied:['À pied','badge-pied'],cheval:['À cheval','badge-cheval']};
+  const[l,c]=m[t]||['—',''];return`<span class="badge ${c}">${l}</span>`;
+}
+function typeLabel(t){return t==='pied'?'À pied':'À cheval';}
+function computeStats(pts){
+  let dist=0,asc=0,desc=0;const speeds=[],dists=[0];
+  for(let i=1;i<pts.length;i++){
+    const d=haversine(pts[i-1],pts[i]);dist+=d;dists.push(dist);
+    const de=pts[i].ele-pts[i-1].ele;if(de>0)asc+=de;else desc+=Math.abs(de);
+    if(pts[i].time&&pts[i-1].time){const dt=(pts[i].time-pts[i-1].time)/1000;speeds.push(dt>0?(d/dt)*3.6:0);}
+    else speeds.push(0);
+  }
+  const duration=(pts[0].time&&pts[pts.length-1].time)?(pts[pts.length-1].time-pts[0].time)/1000:null;
+  const vs=speeds.filter(s=>s>.5);
+  const allureTimes=Object.fromEntries(ALLURES.map(a=>[a.key,0]));
+  for(let i=1;i<pts.length;i++){
+    if(pts[i].time&&pts[i-1].time){const dt=(pts[i].time-pts[i-1].time)/1000;const _al=allureOf(speeds[i-1]??0);if(_al)allureTimes[_al.key]+=dt;}
+  }
+  return{dist,duration,avgSpeed:duration&&dist?(dist/duration)*3.6:null,maxSpeed:vs.length?Math.max(...vs):null,asc,desc,speeds,dists,pts:pts.length,allureTimes};
+}
+function buildLayers(pts,stats,color){
+  const layers=L.layerGroup().addTo(map);
+  for(let i=1;i<pts.length;i++){
+    const spd=stats.speeds[i-1]??0;
+    const al=allureOf(spd);if(al)L.polyline([[pts[i-1].lat,pts[i-1].lon],[pts[i].lat,pts[i].lon]],{color:al.color,weight:4,opacity:.9}).addTo(layers);
+  }
+  L.marker([pts[0].lat,pts[0].lon],{icon:L.divIcon({html:`<div style="width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid ${color};box-shadow:0 0 6px #0008"></div>`,iconSize:[12,12],iconAnchor:[6,6],className:''})}).addTo(layers);
+  return layers;
+}
+
+// ── LOCALSTORAGE ───────────────────────────────────────────────────────────
+function saveStorage(){
+  try{
+    localStorage.setItem(LS_KEY,JSON.stringify(traces.map(t=>({
+      source:t.source,name:t.name,color:t.color,meta:t.meta,
+      ...(t.points?{
+        points:t.points.map(p=>({lat:p.lat,lon:p.lon,ele:p.ele,time:p.time?p.time.toISOString():null})),
+        stats:{dist:t.stats.dist,duration:t.stats.duration,avgSpeed:t.stats.avgSpeed,maxSpeed:t.stats.maxSpeed,
+          asc:t.stats.asc,desc:t.stats.desc,pts:t.stats.pts,allureTimes:t.stats.allureTimes,
+          speeds:t.stats.speeds,dists:t.stats.dists}
+      }:{}),
+      ...(t.textData?{textData:t.textData}:{})
+    }))));
+    updateStorageInd();
+  }catch(e){console.warn(e);}
+}
+function loadStorage(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);if(!raw)return;
+    JSON.parse(raw).forEach(d=>{
+      if(d.source==='text'){traces.push({source:'text',name:d.name,color:d.color,meta:d.meta,textData:d.textData,points:null,layers:null,stats:null});}
+      else{
+        const pts=d.points.map(p=>({...p,time:p.time?new Date(p.time):null}));
+        const stats={...d.stats};
+        traces.push({source:d.source,name:d.name,color:d.color,meta:d.meta,points:pts,layers:buildLayers(pts,stats,d.color),stats});
+      }
+    });
+    const gpsPts=traces.filter(t=>t.points).flatMap(t=>t.points.map(p=>[p.lat,p.lon]));
+    if(gpsPts.length)map.fitBounds(L.latLngBounds(gpsPts),{padding:[30,30]});
+    updateStorageInd();
+  }catch(e){console.warn(e);}
+}
+function updateStorageInd(){
+  const el=document.getElementById('storage-indicator');if(!el)return;
+  if(!traces.length){el.textContent='';return;}
+  try{const kb=Math.round(new Blob([localStorage.getItem(LS_KEY)||'']).size/1024);
+    el.textContent=`💾 ${traces.length} trace${traces.length>1?'s':''} · ${kb} Ko`;}
+  catch(e){el.textContent=`💾 ${traces.length}`;}
+}
+
+// ── TRACE LIST ─────────────────────────────────────────────────────────────
+function renderList(){
+  // List now lives in the Détail tab — just refresh it
+  renderSynthese();
+}
+function selectTrace(i){
+  selectedIdx=i;
+  if(traces[i]?.points){
+    const b=L.latLngBounds(traces[i].points.map(p=>[p.lat,p.lon]));
+    map.fitBounds(b,{padding:[30,30]});
+    if(!mapVisible)toggleMap();
+  }
+  renderSynthese();
+}
+function delTrace(i){
+  if(!confirm(`Supprimer "${traces[i].name}" ?`))return;
+  if(traces[i].layers)traces[i].layers.remove();
+  traces.splice(i,1);
+  selectedIdx=traces.length?Math.max(0,Math.min(i,traces.length-1)):null;
+  saveStorage();renderAll();
+}
+
+// ── HIST DROPDOWN ──────────────────────────────────────────────────────────
+function toggleHistMenu(e){
+  e.stopPropagation();
+  const m=document.getElementById('hist-menu');
+  const opening=!m.classList.contains('open');
+  m.classList.toggle('open');
+  if(opening){
+    setTimeout(()=>document.addEventListener('click',closeHistOnBlur,{once:true}),0);
+  }
+}
+function closeHistOnBlur(e){
+  const m=document.getElementById('hist-menu');
+  if(!m.contains(e.target))m.classList.remove('open');
+}
+function openGpxPicker(){document.getElementById('hist-menu').classList.remove('open');document.getElementById('file-input').click();}
+function openTextModal(){
+  document.getElementById('hist-menu').classList.remove('open');
+  document.getElementById('tm-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('tm-name').value='';document.getElementById('tm-dist').value='';
+  document.getElementById('tm-dur').value='';document.getElementById('tm-type').value='cheval';
+  document.getElementById('tm-comment').value='';
+  openModal('modal-text');
+}
+
+// ── GPX IMPORT ─────────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change',e=>{Array.from(e.target.files).forEach(readGpx);e.target.value='';});
+function readGpx(file){
+  const r=new FileReader();
+  r.onload=ev=>{
+    const doc=new DOMParser().parseFromString(ev.target.result,'application/xml');
+    const pts=Array.from(doc.querySelectorAll('trkpt'));
+    if(!pts.length){alert('Aucun point trouvé.');return;}
+    pendingPoints=pts.map(pt=>({lat:+pt.getAttribute('lat'),lon:+pt.getAttribute('lon'),ele:+(pt.querySelector('ele')?.textContent||0),time:pt.querySelector('time')?new Date(pt.querySelector('time').textContent):null}));
+    pendingStats=computeStats(pendingPoints);pendingFile=file;
+    const d=pendingPoints[0].time;
+    document.getElementById('gm-date').value=d?d.toISOString().slice(0,10):'';
+    document.getElementById('gm-name').value=file.name.replace('.gpx','');
+    document.getElementById('gm-type').value='cheval';document.getElementById('gm-comment').value='';
+    openModal('modal-gpx');
+  };
+  r.readAsText(file);
+}
+function confirmGpx(){
+  if(!pendingPoints)return;
+  const meta={date:document.getElementById('gm-date').value,type:document.getElementById('gm-type').value,comment:document.getElementById('gm-comment').value.trim()};
+  const name=document.getElementById('gm-name').value.trim()||pendingFile.name.replace('.gpx','');
+  closeModal('modal-gpx');
+  const color=COLORS[traces.length%COLORS.length];
+  traces.push({source:'gpx',name,color,meta,points:pendingPoints,layers:buildLayers(pendingPoints,pendingStats,color),stats:pendingStats});
+  selectedIdx=traces.length-1;
+  map.fitBounds(L.latLngBounds(pendingPoints.map(p=>[p.lat,p.lon])),{padding:[30,30]});
+  pendingPoints=pendingStats=pendingFile=null;
+  saveStorage();renderAll();
+}
+
+// ── TEXT ENTRY ─────────────────────────────────────────────────────────────
+function confirmText(){
+  const distKm=parseFloat(document.getElementById('tm-dist').value);
+  if(!distKm||distKm<=0){alert('Saisis une distance valide.');return;}
+  const durSec=parseDur(document.getElementById('tm-dur').value);
+  const name=document.getElementById('tm-name').value.trim()||'Sortie manuelle';
+  const meta={date:document.getElementById('tm-date').value,type:document.getElementById('tm-type').value,comment:document.getElementById('tm-comment').value.trim()};
+  closeModal('modal-text');
+  const color=COLORS[traces.length%COLORS.length];
+  traces.push({source:'text',name,color,meta,textData:{distKm,durSec,avgSpeed:durSec?(distKm/(durSec/3600)):null},points:null,layers:null,stats:null});
+  selectedIdx=traces.length-1;
+  saveStorage();renderAll();
+}
+
+// ── LIVE RECORDING ─────────────────────────────────────────────────────────
+let liveOn=false,liveWatch=null,livePts=[],liveStart=null,liveLayer=null,liveMarker=null,liveTicker=null,liveLast=null,liveDist=0;
+let liveFreqSec=10, liveLastRecorded=null;
+function toggleRecording(){if(!liveOn)startLive();else stopLive();}
+function startLive(){
+  if(!navigator.geolocation){alert('GPS non disponible.');return;}
+  livePts=[];liveDist=0;liveLast=null;liveLastRecorded=null;liveStart=Date.now();
+  liveLayer=L.layerGroup().addTo(map);
+  const icon=L.divIcon({html:`<div style="width:15px;height:15px;border-radius:50%;background:var(--danger);border:3px solid #fff;box-shadow:0 0 0 4px rgba(247,100,149,.3)"></div>`,iconSize:[15,15],iconAnchor:[7,7],className:''});
+  liveMarker=L.marker([0,0],{icon,zIndexOffset:1000});
+  liveWatch=navigator.geolocation.watchPosition(onGps,gpsErr,{enableHighAccuracy:true,maximumAge:60000,timeout:10000});
+  liveOn=true;
+  document.getElementById('btn-live').className='btn-live recording';
+  document.getElementById('live-label').textContent='⏹ Stop';
+  document.getElementById('rec-dot').classList.add('on');
+  document.getElementById('live-hud').classList.add('on');
+  // Ensure map is visible and scrolled into view
+  if(!mapVisible)toggleMap();
+  document.querySelector('.map-section').scrollIntoView({behavior:'smooth'});
+  liveTicker=setInterval(()=>{const s=Math.floor((Date.now()-liveStart)/1000);document.getElementById('hud-dur').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;},1000);
+}
+function onGps(pos){
+  const{latitude:lat,longitude:lon,altitude,speed}=pos.coords;
+  const ele=altitude||0,time=new Date(pos.timestamp);
+  const pt={lat,lon,ele,time};
+  const now=Date.now();
+  const shouldRecord=!liveLastRecorded||(now-liveLastRecorded)>=liveFreqSec*1000;
+
+  // Always update marker position and speed display
+  if(!liveMarker._map)liveMarker.addTo(map);
+  liveMarker.setLatLng([lat,lon]);
+  if(mapVisible)map.panTo([lat,lon],{animate:true,duration:0.5});
+
+  // Compute instantaneous speed for HUD (from device or from last recorded pt)
+  if(liveLast){
+    const dt=(time-liveLast.time)/1000;
+    const kmh=dt>0?haversine(liveLast,pt)/dt*3.6:0;
+    document.getElementById('hud-spd').textContent=(speed!=null?(speed*3.6).toFixed(1):kmh.toFixed(1))+' km/h';
+  }
+
+  // Only record point and draw segment at configured frequency
+  if(shouldRecord){
+    if(liveLast){
+      const d=haversine(liveLast,pt);liveDist+=d;
+      const dt=(time-liveLast.time)/1000,kmh=dt>0?(d/dt)*3.6:0;
+      const al=allureOf(kmh);
+      if(al)L.polyline([[liveLast.lat,liveLast.lon],[lat,lon]],{color:al.color,weight:4,opacity:.9}).addTo(liveLayer);
+    }
+    livePts.push(pt);
+    liveLast=pt;
+    liveLastRecorded=now;
+    document.getElementById('hud-pts').textContent=livePts.length;
+    document.getElementById('hud-dist').textContent=(liveDist/1000).toFixed(2)+' km';
+  }
+}
+function gpsErr(e){if(e.code===1)alert('GPS refusé. Autorise la localisation.');}
+function stopLive(){
+  if(liveWatch!=null){navigator.geolocation.clearWatch(liveWatch);liveWatch=null;}
+  clearInterval(liveTicker);liveOn=false;
+  document.getElementById('btn-live').className='btn-live';
+  document.getElementById('live-label').textContent='⏺ Record';
+  document.getElementById('rec-dot').classList.remove('on');
+  if(livePts.length<2){alert('Pas assez de points GPS.');resetLiveUI();return;}
+  const now=new Date();
+  document.getElementById('lm-name').value=`Sortie du ${now.toLocaleDateString('fr-FR')}`;
+  document.getElementById('lm-type').value='cheval';document.getElementById('lm-comment').value='';
+  openModal('modal-live');
+}
+function saveLive(){
+  const meta={date:new Date(livePts[0].time).toISOString().slice(0,10),type:document.getElementById('lm-type').value,comment:document.getElementById('lm-comment').value.trim()};
+  const name=document.getElementById('lm-name').value.trim()||'Sortie live';
+  closeModal('modal-live');
+  const stats=computeStats(livePts);const color=COLORS[traces.length%COLORS.length];
+  if(liveMarker&&liveMarker._map)liveMarker.remove();
+  traces.push({source:'live',name,color,meta,points:livePts,layers:liveLayer,stats});
+  selectedIdx=traces.length-1;liveLayer=null;
+  saveStorage();renderAll();resetLiveUI();
+}
+function discardLive(){
+  closeModal('modal-live');
+  if(liveLayer){liveLayer.remove();liveLayer=null;}
+  if(liveMarker&&liveMarker._map)liveMarker.remove();
+  resetLiveUI();
+}
+function resetLiveUI(){
+  document.getElementById('live-hud').classList.remove('on');
+  livePts=[];liveDist=0;liveLast=null;liveStart=null;
+}
+
+// ── RENDER ALL ─────────────────────────────────────────────────────────────
+function renderAll(){renderList();renderGlobalTab();renderSynthese();}
+
+// ── DETAIL MODAL ───────────────────────────────────────────────────────────
+let detailIdx=null, detailChart=null;
+function openDetail(i){
+  detailIdx=i;
+  const t=traces[i],isText=t.source==='text';
+  // editable fields
+  document.getElementById('dm-date').value=t.meta.date||'';
+  document.getElementById('dm-type').value=t.meta.type||'cheval';
+  document.getElementById('dm-comment').value=t.meta.comment||'';
+  // stats
+  const sd=document.getElementById('dm-stats');
+  if(isText){
+    const d=t.textData;
+    sd.innerHTML=statCard('Distance',d.distKm.toFixed(2),'km','c-accent')+statCard('Durée',fmtDur(d.durSec))+statCard('Vitesse moy.',d.avgSpeed?d.avgSpeed.toFixed(1):'—','km/h','c-green');
+  } else {
+    const s=t.stats;
+    sd.innerHTML=statCard('Distance',(s.dist/1000).toFixed(2),'km','c-accent')+statCard('Durée',fmtDur(s.duration))+statCard('Vitesse moy.',s.avgSpeed?s.avgSpeed.toFixed(1):'—','km/h','c-green')+statCard('Vitesse max',s.maxSpeed?s.maxSpeed.toFixed(1):'—','km/h','c-warn')+statCard('Dénivelé +',Math.round(s.asc),'m')+statCard('Dénivelé −',Math.round(s.desc),'m');
+  }
+  // allure
+  const aw=document.getElementById('dm-allure-wrap');
+  if(!isText){
+    aw.style.display='block';
+    const total=Object.values(t.stats.allureTimes).reduce((a,b)=>a+b,0)||1;
+    document.getElementById('dm-allure-bars').innerHTML=ALLURES.map(a=>{
+      const dur=t.stats.allureTimes[a.key]||0,pct=Math.round(dur/total*100);
+      return`<div class="allure-row"><div class="allure-label">${a.label}</div><div class="allure-track"><div class="allure-fill" style="width:${pct}%;background:${a.color}"></div></div><div class="allure-pct">${pct}%</div><div class="allure-dur">${fmtDur(dur)}</div></div>`;
+    }).join('');
+  } else aw.style.display='none';
+  // speed chart
+  const sw=document.getElementById('dm-speed-wrap');
+  if(!isText){
+    sw.style.display='block';
+    const mx=300,st=Math.max(1,Math.floor(t.points.length/mx));
+    const pts=t.points.filter((_,j)=>j%st===0);
+    let dd=0;const cDist=pts.map((p,j)=>{if(j>0)dd+=haversine(pts[j-1],p);return(dd/1000).toFixed(2);});
+    const spds=t.stats.speeds.filter((_,j)=>j%st===0);
+    const gc='rgba(46,54,80,.8)',tc='#7a82a0';
+    if(detailChart)detailChart.destroy();
+    detailChart=new Chart(document.getElementById('dm-chart-speed'),{
+      type:'bar',
+      data:{labels:cDist.slice(0,spds.length),datasets:[{data:spds.map(v=>+v.toFixed(1)),backgroundColor:spds.map(v=>(allureOf(v)||ALLURES[0]).color),borderWidth:0,borderRadius:2}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{
+        x:{ticks:{color:tc,maxTicksLimit:6,callback:(_,j)=>cDist[j]+'km'},grid:{color:gc}},
+        y:{ticks:{color:tc,callback:v=>v+' km/h'},grid:{color:gc},min:0}
+      }}
+    });
+  } else sw.style.display='none';
+  openModal('modal-detail');
+}
+function saveDetail(){
+  if(detailIdx===null)return;
+  traces[detailIdx].meta.date=document.getElementById('dm-date').value;
+  traces[detailIdx].meta.type=document.getElementById('dm-type').value;
+  traces[detailIdx].meta.comment=document.getElementById('dm-comment').value.trim();
+  closeModal('modal-detail');
+  saveStorage();renderAll();
+}
+function statCard(label,val,unit,cls=''){
+  return`<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-val ${cls}">${val}${unit?`<span class="stat-unit">${unit}</span>`:''}</div></div>`;
+}
+
+// ── TAB : GLOBAL ───────────────────────────────────────────────────────────
+function renderGlobalTab(){
+  const noEl=document.getElementById('no-global'),cont=document.getElementById('global-content');
+  if(!traces.length){noEl.style.display='flex';cont.style.display='none';return;}
+  noEl.style.display='none';cont.style.display='flex';
+  const totalDist=traces.reduce((a,t)=>a+(t.points?t.stats.dist:t.textData.distKm*1000),0);
+  const totalDur=traces.reduce((a,t)=>a+(t.points?(t.stats.duration||0):(t.textData.durSec||0)),0);
+  const allMax=Math.max(0,...traces.filter(t=>t.points&&t.stats.maxSpeed).map(t=>t.stats.maxSpeed));
+  const avgSpd=totalDur>0?(totalDist/totalDur)*3.6:0;
+  document.getElementById('g-grid').innerHTML=
+    statCard('Distance totale',(totalDist/1000).toFixed(1),'km','c-accent')+
+    statCard('Durée totale',fmtDur(totalDur))+
+    statCard('Vitesse moy.',avgSpd.toFixed(1),'km/h','c-green')+
+    statCard('Vitesse max',allMax?allMax.toFixed(1):'—','km/h','c-warn')+
+    statCard('Sorties',traces.length);
+
+  // allure GPS only — with distance per allure
+  const gpsTr=traces.filter(t=>t.points);
+  const gA=Object.fromEntries(ALLURES.map(a=>[a.key,0]));
+  const gADist=Object.fromEntries(ALLURES.map(a=>[a.key,0]));
+  gpsTr.forEach(t=>{
+    ALLURES.forEach(a=>{gA[a.key]+=(t.stats.allureTimes[a.key]||0);});
+    const pts=t.points, spds=t.stats.speeds;
+    for(let i=1;i<pts.length;i++){
+      const d=haversine(pts[i-1],pts[i]);
+      const _al=allureOf(spds[i-1]??0);if(_al)gADist[_al.key]+=d;
+    }
+  });
+  const gT=Object.values(gA).reduce((a,b)=>a+b,0)||1;
+  const gTDist=Object.values(gADist).reduce((a,b)=>a+b,0)||1;
+  document.getElementById('g-allure-bars').innerHTML=ALLURES.map(a=>{
+    const dur=gA[a.key],pct=Math.round(dur/gT*100);
+    const distKm=(gADist[a.key]/1000).toFixed(1);
+    return`<div class="allure-row">
+      <div class="allure-label">${a.label}</div>
+      <div class="allure-track"><div class="allure-fill" style="width:${pct}%;background:${a.color}"></div></div>
+      <div class="allure-pct">${pct}%</div>
+      <div class="allure-dur">${fmtDur(dur)}</div>
+      <div class="allure-dist">${distKm} km</div>
+    </div>`;
+  }).join('');
+
+  const gc='rgba(46,54,80,.8)',tc='#7a82a0';
+
+  // monthly — build full year view with year selector
+  const years=[...new Set(traces.map(t=>t.meta.date?.slice(0,4)).filter(Boolean))].sort();
+  const mySel=document.getElementById('monthly-year');
+  const prevY=mySel.value;
+  mySel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  if(prevY&&years.includes(prevY))mySel.value=prevY;
+  else if(years.length)mySel.value=years[years.length-1];
+  renderMonthlyChart();
+  updateComparisonSelectors();
+}
+
+
+const MONTH_NAMES=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const TYPE_COLORS={pied:'#4f8ef7',cheval:'#91c8f7'};
+const TYPE_LABELS={pied:'À pied',cheval:'À cheval'};
+function renderMonthlyChart(){
+  const y=document.getElementById('monthly-year')?.value;
+  if(!y)return;
+  const gc='rgba(46,54,80,.8)',tc='#7a82a0';
+  // Build data for all 12 months — use explicit ordered array to avoid key-sort issues
+  const moKeys=['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const mo={};
+  moKeys.forEach(k=>{mo[k]={pied:0,cheval:0};});
+  traces.filter(t=>t.meta.date?.startsWith(y)).forEach(t=>{
+    const mn=t.meta.date.slice(5,7);
+    if(mo[mn]&&mo[mn][t.meta.type]!==undefined)mo[mn][t.meta.type]+=(t.points?t.stats.dist/1000:t.textData.distKm);
+  });
+  const types=['cheval','pied'];
+  if(chartMonthly)chartMonthly.destroy();
+  chartMonthly=new Chart(document.getElementById('chart-monthly'),{
+    type:'bar',
+    data:{
+      labels:MONTH_NAMES,
+      datasets:types.map(tp=>({
+        label:TYPE_LABELS[tp],
+        data:moKeys.map(k=>+mo[k][tp].toFixed(1)),
+        backgroundColor:TYPE_COLORS[tp],
+        borderRadius:4,borderWidth:0,
+        // value labels per segment
+        datalabels:{display:true}
+      }))
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:tc,boxWidth:12,padding:16}},
+        tooltip:{enabled:false},
+      },
+      scales:{
+        x:{stacked:true,ticks:{color:tc,font:{size:11}},grid:{color:gc}},
+        y:{stacked:true,ticks:{color:tc,callback:v=>v+' km'},grid:{color:gc},min:0}
+      },
+      animation:{duration:300}
+    },
+    plugins:[{
+      id:'stackLabels',
+      afterDatasetsDraw(chart){
+        const{ctx,data,scales:{x,y}}=chart;
+        ctx.save();
+        // Draw total on top of each bar
+        const totals=Array(12).fill(0);
+        chart.data.datasets.forEach(ds=>{ds.data.forEach((v,i)=>totals[i]+=v||0);});
+        totals.forEach((tot,i)=>{
+          if(tot===0)return;
+          const meta=chart.getDatasetMeta(chart.data.datasets.length-1);
+          const bar=meta.data[i];
+          if(!bar)return;
+          ctx.fillStyle=tc;ctx.font='bold 11px Inter,system-ui,sans-serif';
+          ctx.textAlign='center';ctx.textBaseline='bottom';
+          ctx.fillText(tot.toFixed(1)+'km',bar.x,y.getPixelForValue(tot)-4);
+        });
+        // Draw per-segment value if >0
+        chart.data.datasets.forEach((ds,di)=>{
+          const meta=chart.getDatasetMeta(di);
+          ds.data.forEach((v,i)=>{
+            if(!v||v<2)return;
+            const bar=meta.data[i];if(!bar)return;
+            const yTop=bar.y,yBot=bar.y+bar.height;
+            const mid=(yTop+yBot)/2;
+            ctx.fillStyle='rgba(255,255,255,0.85)';ctx.font='11px Inter,system-ui,sans-serif';
+            ctx.textAlign='center';ctx.textBaseline='middle';
+            ctx.fillText(v.toFixed(1),bar.x,mid);
+          });
+        });
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+// ── COMPARISON ──────────────────────────────────────────────────────────────
+function renderSynthTable(){
+  const wrap=document.getElementById('synth-table-wrap');
+  if(!wrap)return;
+  if(!traces.length){
+    wrap.innerHTML='<div class="no-data" style="padding:1rem;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>Aucune donnée</div>';
+    return;
+  }
+  const years=[...new Set(traces.map(t=>t.meta.date?.slice(0,4)).filter(Boolean))].sort();
+
+  // Build data structure: mo[month][year][type] = {dist, count}
+  const data={};
+  for(let m=1;m<=12;m++){
+    const mk=String(m).padStart(2,'0');
+    data[mk]={};
+    years.forEach(y=>{data[mk][y]={pied:{dist:0,n:0},cheval:{dist:0,n:0},mixte:{dist:0,n:0}};});
+  }
+  traces.forEach(t=>{
+    if(!t.meta.date)return;
+    const y=t.meta.date.slice(0,4), mk=t.meta.date.slice(5,7);
+    if(!data[mk]||!data[mk][y])return;
+    const km=t.points?t.stats.dist/1000:t.textData.distKm;
+    data[mk][y][t.meta.type].dist+=km;
+    data[mk][y][t.meta.type].n+=1;
+  });
+
+  // Year totals
+  const yearTotals={};
+  years.forEach(y=>{
+    const trs=traces.filter(t=>t.meta.date?.startsWith(y));
+    const dists=trs.map(t=>t.points?t.stats.dist/1000:t.textData.distKm);
+    const total=dists.reduce((a,b)=>a+b,0);
+    const avg=dists.length?total/dists.length:0;
+    const sorted=[...dists].sort((a,b)=>a-b);
+    const med=sorted.length?sorted.length%2===0?(sorted[sorted.length/2-1]+sorted[sorted.length/2])/2:sorted[Math.floor(sorted.length/2)]:0;
+    const byType={pied:{dist:0,n:0},cheval:{dist:0,n:0},mixte:{dist:0,n:0}};
+    trs.forEach(t=>{const km=t.points?t.stats.dist/1000:t.textData.distKm;byType[t.meta.type].dist+=km;byType[t.meta.type].n+=t.meta.type?1:0;byType[t.meta.type].n=byType[t.meta.type].n||0;});
+    trs.forEach(t=>{byType[t.meta.type].n+=1;}); // recount cleanly
+    // reset and recount
+    const byType2={pied:{dist:0,n:0},cheval:{dist:0,n:0}};
+    trs.forEach(t=>{const km=t.points?t.stats.dist/1000:t.textData.distKm;byType2[t.meta.type].dist+=km;byType2[t.meta.type].n++;});
+    yearTotals[y]={total,avg,med,count:trs.length,byType:byType2};
+  });
+
+  function fmtKm(v){return v>0?`<span>${v.toFixed(1)}<small>km</small></span>`:`<span class="zero">0</span>`;}
+  function fmtN(v){return v>0?`<small>(${v})</small>`:`<span class="zero"></span>`;}
+
+  // Header: year columns, each split into pied / cheval / nb sorties
+  const colsPerYear=3; // à pied km | à cheval km | nb sorties
+  let thead=`<thead>
+    <tr>
+      <th class="lbl" rowspan="2"></th>
+      ${years.map(y=>`<th class="year-hd" colspan="${colsPerYear}">${y}</th>`).join('')}
+    </tr>
+    <tr>
+      ${years.map(()=>`<th>à pied</th><th>à cheval</th><th>sorties</th>`).join('')}
+    </tr>
+  </thead>`;
+
+  const MONTH_NAMES=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  let tbody='<tbody>';
+  for(let m=1;m<=12;m++){
+    const mk=String(m).padStart(2,'0');
+    const cells=years.map(y=>{
+      const d=data[mk][y];
+      const nTotal=d.pied.n+d.cheval.n+d.mixte.n;
+      return`<td class="c-pied">${d.pied.dist>0?d.pied.dist.toFixed(1)+'km':'<span class="zero">0</span>'}</td><td class="c-cheval">${d.cheval.dist>0?d.cheval.dist.toFixed(1)+'km':'<span class="zero">0</span>'}</td><td>${nTotal>0?nTotal:'<span class="zero">0</span>'}</td>`;
+    }).join('');
+    tbody+=`<tr><td class="lbl">${MONTH_NAMES[m-1]}</td>${cells}</tr>`;
+  }
+  // Total row
+  const totalCells=years.map(y=>{
+    const t=yearTotals[y];
+    return`<td class="c-pied">${t.byType.pied.dist.toFixed(1)}km</td><td class="c-cheval">${t.byType.cheval.dist.toFixed(1)}km</td><td>${t.count}</td>`;
+  }).join('');
+  tbody+=`<tr class="total-row"><td class="lbl">Total</td>${totalCells}</tr>`;
+  // Dist totale row
+  const distCells=years.map(y=>`<td colspan="${colsPerYear}" style="text-align:center;">${yearTotals[y].total.toFixed(1)} km</td>`).join('');
+  tbody+=`<tr class="summary-row"><td class="lbl">Distance totale</td>${distCells}</tr>`;
+  // Moyenne row
+  const avgCells=years.map(y=>`<td colspan="${colsPerYear}" style="text-align:center;">${yearTotals[y].avg.toFixed(2)} km</td>`).join('');
+  tbody+=`<tr class="summary-row"><td class="lbl">Distance moyenne</td>${avgCells}</tr>`;
+  // Médiane row
+  const medCells=years.map(y=>`<td colspan="${colsPerYear}" style="text-align:center;">${yearTotals[y].med.toFixed(2)} km</td>`).join('');
+  tbody+=`<tr class="summary-row"><td class="lbl">Distance médiane</td>${medCells}</tr>`;
+  tbody+='</tbody>';
+
+  wrap.innerHTML=`<table class="stbl">${thead}${tbody}</table>`;
+}
+// kept as no-op so renderGlobalTab doesn't break
+function updateComparisonSelectors(){ renderSynthTable(); }
+
+function renderSynthese(){
+  const noEl=document.getElementById('no-synth'),cont=document.getElementById('synth-content');
+  if(!traces.length){noEl.style.display='flex';cont.style.display='none';return;}
+  noEl.style.display='none';cont.style.display='flex';
+  const years=[...new Set(traces.map(t=>t.meta.date?.slice(0,4)).filter(Boolean))].sort();
+  const ysel=document.getElementById('year-sel'),prev=ysel.value;
+  ysel.innerHTML='<option value="all">Toutes</option>'+years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  if(prev&&years.includes(prev))ysel.value=prev;
+  const fy=ysel.value;
+  const rows=[...traces].map((t,i)=>({t,i}))
+    .filter(({t})=>fy==='all'||t.meta.date?.startsWith(fy))
+    .sort((a,b)=>(b.t.meta.date||'').localeCompare(a.t.meta.date||''));
+  const tc='#7a82a0';
+  document.getElementById('synth-body').innerHTML=rows.map(({t,i})=>{
+    const iT=t.source==='text';
+    const dist=iT?t.textData.distKm.toFixed(1):(t.stats.dist/1000).toFixed(1);
+    const dur=iT?fmtDur(t.textData.durSec):fmtDur(t.stats.duration);
+    const avg=iT?(t.textData.avgSpeed?t.textData.avgSpeed.toFixed(1):'—'):(t.stats.avgSpeed?t.stats.avgSpeed.toFixed(1):'—');
+    const max=iT?'—':(t.stats.maxSpeed?t.stats.maxSpeed.toFixed(1):'—');
+    const hasMap=!!t.points;
+    const isSelected=i===selectedIdx;
+    return`<tr id="synth-row-${i}" style="${isSelected?'background:rgba(79,142,247,.12);':''}" onclick="synthSelectTrace(${i})">
+      <td><div style="width:9px;height:9px;border-radius:50%;background:${iT?'transparent':t.color};${iT?`border:2px solid ${t.color};`:''}margin:auto;"></div></td>
+      <td style="white-space:nowrap;">${fmtDate(t.meta.date)}</td>
+      <td>${typeBadge(t.meta.type)}</td>
+      <td style="font-weight:600;color:var(--accent);">${dist} <span style="color:var(--muted);font-size:11px;">km</span></td>
+      <td>${dur}</td>
+      <td>${avg}${avg!=='—'?'<span style="color:var(--muted);font-size:11px;"> km/h</span>':''}</td>
+      <td>${max}${max!=='—'?'<span style="color:var(--muted);font-size:11px;"> km/h</span>':''}</td>
+      <td style="white-space:nowrap;">
+        ${hasMap?`<button class="action-btn map-btn" title="Voir sur la carte" onclick="event.stopPropagation();synthShowMap(${i})">🗺</button>`:'<span style="opacity:.25;padding:0 4px;">🗺</span>'}
+        <button class="action-btn edit-btn" title="Modifier" onclick="event.stopPropagation();openDetail(${i})">✏️</button>
+        <button class="action-btn del-btn" title="Supprimer" onclick="event.stopPropagation();delTrace(${i})">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function synthSelectTrace(i){
+  selectedIdx=i;
+  renderSynthese();
+}
+function synthShowMap(i){
+  if(!traces[i]?.points)return;
+  selectedIdx=i;
+  // Scroll up to map and show it
+  if(!mapVisible)toggleMap();
+  const b=L.latLngBounds(traces[i].points.map(p=>[p.lat,p.lon]));
+  map.fitBounds(b,{padding:[30,30]});
+  document.querySelector('.map-section').scrollIntoView({behavior:'smooth'});
+  renderSynthese();
+}
+
+// ── PASTE IMPORT ────────────────────────────────────────────────────────────
+function openPasteModal(){
+  document.getElementById('hist-menu').classList.remove('open');
+  document.getElementById('paste-input').value='';
+  document.getElementById('paste-preview').textContent='';
+  openModal('modal-paste');
+  // Live preview on input
+  document.getElementById('paste-input').oninput=previewPaste;
+}
+function previewPaste(){
+  const rows=parsePasteData(document.getElementById('paste-input').value);
+  const el=document.getElementById('paste-preview');
+  if(!rows.length){el.textContent='';return;}
+  const ok=rows.filter(r=>r.ok).length;
+  const err=rows.filter(r=>!r.ok).length;
+  el.innerHTML=`<span style="color:var(--accent2);">✓ ${ok} ligne${ok>1?'s':''} valide${ok>1?'s':''}</span>`+
+    (err?` <span style="color:var(--danger);margin-left:8px;">⚠ ${err} ignorée${err>1?'s':''} (format incorrect)</span>`:'');
+}
+function parsePasteData(raw){
+  return raw.trim().split('\n').filter(l=>l.trim()).map(line=>{
+    // Google Sheets uses tabs between cells
+    const cols=line.split('\t').map(s=>s.trim());
+    // Expected: Year, Month, Date, Distance, ACheval?, Temps, Détails
+    // Date col may be a full date string or just day number
+    try{
+      let dateStr='';
+      const year=cols[0]?.match(/^\d{4}$/)?cols[0]:null;
+      const month=cols[1]?.match(/^\d{1,2}$/)?cols[1].padStart(2,'0'):null;
+      const day=cols[2]?.match(/^\d{1,2}$/)?cols[2].padStart(2,'0'):null;
+      // Also handle case where Date col is already a full date like "14/05/2024" or "2024-05-14"
+      if(cols[2]?.match(/^\d{4}-\d{2}-\d{2}$/)){
+        dateStr=cols[2];
+      } else if(cols[2]?.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)){
+        const[d,m,y]=cols[2].split('/');dateStr=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+      } else if(year&&month&&day){
+        dateStr=`${year}-${month}-${day}`;
+      }
+      if(!dateStr)return{ok:false,raw:line};
+      const distKm=parseFloat(cols[3]?.replace(',','.'));
+      if(isNaN(distKm)||distKm<=0)return{ok:false,raw:line};
+      const typeRaw=(cols[4]||'').toLowerCase().trim();
+      let type='pied';
+      if(typeRaw.includes('cheval')||typeRaw==='horse')type='cheval';
+
+      const durSec=parseDur(cols[5]||'');
+      const comment=(cols[6]||'').trim();
+      return{ok:true,dateStr,distKm,type,durSec,comment};
+    }catch(e){return{ok:false,raw:line};}
+  });
+}
+function confirmPaste(){
+  const rows=parsePasteData(document.getElementById('paste-input').value);
+  const valid=rows.filter(r=>r.ok);
+  if(!valid.length){alert('Aucune ligne valide trouvée. Vérifie le format.');return;}
+  closeModal('modal-paste');
+  valid.forEach(r=>{
+    const color=COLORS[traces.length%COLORS.length];
+    traces.push({
+      source:'text',name:'',color,
+      meta:{date:r.dateStr,type:r.type,comment:r.comment},
+      textData:{distKm:r.distKm,durSec:r.durSec,avgSpeed:r.durSec?(r.distKm/(r.durSec/3600)):null},
+      points:null,layers:null,stats:null
+    });
+  });
+  saveStorage();renderAll();
+  // Feedback
+  setTimeout(()=>alert(`✓ ${valid.length} sortie${valid.length>1?'s':''} importée${valid.length>1?'s':''} avec succès.`),100);
+}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ── TAB SWITCH ─────────────────────────────────────────────────────────────
+function showTab(name,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
