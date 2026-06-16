@@ -240,6 +240,10 @@ tr:last-child td{border-bottom:none;}
       <div class="hist-item" onclick="openGpxPicker()">📂 Importer un GPX</div>
       <div class="hist-item" onclick="openTextModal()">✏️ Saisie manuelle</div>
       <div class="hist-item" onclick="openPasteModal()">📋 Coller un tableau</div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
+      <div class="hist-item" onclick="exportAll()">💾 Exporter toutes les données</div>
+      <div class="hist-item" onclick="document.getElementById('import-input').click()">📥 Importer une sauvegarde</div>
+      <input type="file" id="import-input" accept=".json" style="display:none" onchange="importAll(event)">
     </div>
     <input type="file" id="file-input" accept=".gpx" multiple style="display:none">
   </div>
