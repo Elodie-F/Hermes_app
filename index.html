@@ -1296,6 +1296,60 @@ function confirmPaste(){
   // Feedback
   setTimeout(()=>alert(`✓ ${valid.length} sortie${valid.length>1?'s':''} importée${valid.length>1?'s':''} avec succès.`),100);
 }
+// ── EXPORT / IMPORT ALL ────────────────────────────────────────────────────
+function exportAll(){
+  document.getElementById('hist-menu').classList.remove('open');
+  try{
+    const raw=localStorage.getItem(LS_KEY)||'[]';
+    const cfg=localStorage.getItem(LS_CFG)||'{}';
+    const payload=JSON.stringify({version:1,data:JSON.parse(raw),config:JSON.parse(cfg)},null,2);
+    const date=new Date().toISOString().slice(0,10);
+    const a=document.createElement('a');
+    a.href='data:application/json;charset=utf-8,'+encodeURIComponent(payload);
+    a.download=`hermes-backup-${date}.json`;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>document.body.removeChild(a),200);
+  }catch(e){alert('Erreur export : '+e.message);}
+}
+function importAll(e){
+  document.getElementById('hist-menu').classList.remove('open');
+  const file=e.target.files[0];e.target.value='';
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const payload=JSON.parse(ev.target.result);
+      if(!payload.version||!Array.isArray(payload.data))
+        throw new Error('Format invalide — ce fichier n\'est pas une sauvegarde Hermès.');
+      const existing=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+      let merged;
+      if(existing.length){
+        const choice=confirm(`Tu as déjà ${existing.length} trace${existing.length>1?'s':''} enregistrée${existing.length>1?'s':''}.\n\nOK = Fusionner\nAnnuler = Remplacer tout`);
+        if(choice){
+          const keys=new Set(existing.map(t=>t.name+'|'+t.meta?.date));
+          const toAdd=payload.data.filter(t=>!keys.has(t.name+'|'+t.meta?.date));
+          merged=[...existing,...toAdd];
+          if(toAdd.length<payload.data.length)
+            alert(`${payload.data.length-toAdd.length} doublon${payload.data.length-toAdd.length>1?'s':''} ignoré${payload.data.length-toAdd.length>1?'s':''}.`);
+        } else {
+          merged=payload.data;
+        }
+      } else {
+        merged=payload.data;
+      }
+      if(payload.config)localStorage.setItem(LS_CFG,JSON.stringify(payload.config));
+      localStorage.setItem(LS_KEY,JSON.stringify(merged));
+      traces.forEach(t=>{if(t.layers)t.layers.remove();});
+      traces=[];
+      loadStorage();renderAll();loadAllureConfig();
+      alert(`✓ ${merged.length} trace${merged.length>1?'s':''} chargée${merged.length>1?'s':''}.`);
+    }catch(err){alert('Erreur import : '+err.message);}
+  };
+  reader.readAsText(file);
+}
+
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
