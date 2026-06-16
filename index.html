@@ -291,7 +291,7 @@ tr:last-child td{border-bottom:none;}
             <div class="chart-title" style="margin:0;">Distance par mois (km)</div>
 <select id="monthly-year" style="display:none;"></select>
           </div>
-          <canvas id="chart-monthly" style="max-height:320px;"></canvas>
+          <canvas id="chart-monthly" style="height:420px;max-height:420px;"></canvas>
         </div>
 
       </div>
@@ -1022,59 +1022,80 @@ function renderMonthlyChart(){
     const mn=t.meta.date.slice(5,7);
     if(mo[mn]&&mo[mn][t.meta.type]!==undefined)mo[mn][t.meta.type]+=(t.points?t.stats.dist/1000:t.textData.distKm);
   });
+  // Compute sorties count per month for the filtered period
+  const moCount={};
+  moKeys.forEach(k=>{moCount[k]=0;});
+  filtered.forEach(t=>{
+    if(!t.meta.date)return;
+    const mn=t.meta.date.slice(5,7);
+    if(moCount[mn]!==undefined)moCount[mn]++;
+  });
+
   const types=['cheval','pied'];
   if(chartMonthly)chartMonthly.destroy();
   chartMonthly=new Chart(document.getElementById('chart-monthly'),{
     type:'bar',
     data:{
-      labels:MONTH_NAMES,
+      labels:MONTH_NAMES.map(m=>m.slice(0,3)),
       datasets:types.map(tp=>({
         label:TYPE_LABELS[tp],
         data:moKeys.map(k=>+mo[k][tp].toFixed(1)),
         backgroundColor:TYPE_COLORS[tp],
         borderRadius:4,borderWidth:0,
-        // value labels per segment
-        datalabels:{display:true}
       }))
     },
     options:{
       responsive:true,
+      maintainAspectRatio:false,
       plugins:{
         legend:{labels:{color:tc,boxWidth:12,padding:16}},
         tooltip:{enabled:false},
       },
       scales:{
-        x:{stacked:true,ticks:{color:tc,font:{size:11}},grid:{color:gc}},
+        x:{stacked:true,ticks:{color:tc,font:{size:12}},grid:{color:gc}},
         y:{stacked:true,ticks:{color:tc,callback:v=>v+' km'},grid:{color:gc},min:0}
       },
-      animation:{duration:300}
+      animation:{duration:300},
+      layout:{padding:{top:36}}
     },
     plugins:[{
       id:'stackLabels',
       afterDatasetsDraw(chart){
         const{ctx,data,scales:{x,y}}=chart;
         ctx.save();
-        // Draw total on top of each bar
+        // Compute totals
         const totals=Array(12).fill(0);
-        chart.data.datasets.forEach(ds=>{ds.data.forEach((v,i)=>totals[i]+=v||0);});
+        data.datasets.forEach(ds=>{ds.data.forEach((v,i)=>totals[i]+=v||0);});
+        const topMeta=chart.getDatasetMeta(data.datasets.length-1);
+
         totals.forEach((tot,i)=>{
-          if(tot===0)return;
-          const meta=chart.getDatasetMeta(chart.data.datasets.length-1);
-          const bar=meta.data[i];
-          if(!bar)return;
-          ctx.fillStyle=tc;ctx.font='bold 11px Inter,system-ui,sans-serif';
-          ctx.textAlign='center';ctx.textBaseline='bottom';
-          ctx.fillText(tot.toFixed(1)+'km',bar.x,y.getPixelForValue(tot)-4);
+          const bar=topMeta.data[i];if(!bar)return;
+          const barTop=y.getPixelForValue(tot);
+
+          // Total km above bar
+          if(tot>0){
+            ctx.fillStyle='#e8eaf2';ctx.font='bold 11px Inter,system-ui,sans-serif';
+            ctx.textAlign='center';ctx.textBaseline='bottom';
+            ctx.fillText(tot.toFixed(1)+'km',bar.x,barTop-4);
+          }
+
+          // Sorties count above km total
+          const n=moCount[moKeys[i]]||0;
+          if(n>0){
+            ctx.fillStyle=tc;ctx.font='10px Inter,system-ui,sans-serif';
+            ctx.textAlign='center';ctx.textBaseline='bottom';
+            ctx.fillText(n+' sortie'+(n>1?'s':''),bar.x,barTop-17);
+          }
         });
-        // Draw per-segment value if >0
-        chart.data.datasets.forEach((ds,di)=>{
+
+        // Per-segment value inside bar
+        data.datasets.forEach((ds,di)=>{
           const meta=chart.getDatasetMeta(di);
           ds.data.forEach((v,i)=>{
-            if(!v||v<2)return;
+            if(!v||v<4)return;
             const bar=meta.data[i];if(!bar)return;
-            const yTop=bar.y,yBot=bar.y+bar.height;
-            const mid=(yTop+yBot)/2;
-            ctx.fillStyle='rgba(255,255,255,0.85)';ctx.font='11px Inter,system-ui,sans-serif';
+            const mid=(bar.y+bar.y+bar.height)/2;
+            ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='10px Inter,system-ui,sans-serif';
             ctx.textAlign='center';ctx.textBaseline='middle';
             ctx.fillText(v.toFixed(1),bar.x,mid);
           });
