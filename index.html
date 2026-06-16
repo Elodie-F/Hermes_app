@@ -1050,11 +1050,20 @@ function renderMonthlyChart(){
       return{label:yr,data,borderColor:color,backgroundColor:color+'33',
         borderWidth:2.5,pointRadius:4,pointHoverRadius:6,fill:false,tension:.3};
     });
-    chartMonthly=new Chart(document.getElementById('chart-monthly'),{
+    // Force canvas reset
+    const canvasElL=document.getElementById('chart-monthly');
+    const parentL=canvasElL.parentNode;
+    const newCanvasL=document.createElement('canvas');
+    newCanvasL.id='chart-monthly';
+    newCanvasL.style.cssText=canvasElL.style.cssText;
+    parentL.replaceChild(newCanvasL,canvasElL);
+
+    chartMonthly=new Chart(newCanvasL,{
       type:'line',
       data:{labels:MONTH_SHORT,datasets},
       options:{
         responsive:true,maintainAspectRatio:false,
+        events:['mousemove','mouseout','click','touchstart','touchmove'],
         plugins:{
           legend:{labels:{color:tc,boxWidth:12,padding:14}},
           tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y} km`}},
@@ -1083,7 +1092,15 @@ function renderMonthlyChart(){
       }
     });
     const types=gType==='all'?['cheval','pied']:[gType];
-    chartMonthly=new Chart(document.getElementById('chart-monthly'),{
+    // Force canvas reset to clear any previous chart artifacts
+    const canvasEl=document.getElementById('chart-monthly');
+    const parent=canvasEl.parentNode;
+    const newCanvas=document.createElement('canvas');
+    newCanvas.id='chart-monthly';
+    newCanvas.style.cssText=canvasEl.style.cssText;
+    parent.replaceChild(newCanvas,canvasEl);
+
+    chartMonthly=new Chart(newCanvas,{
       type:'bar',
       data:{
         labels:MONTH_SHORT,
@@ -1096,6 +1113,7 @@ function renderMonthlyChart(){
       },
       options:{
         responsive:true,maintainAspectRatio:false,
+        events:['mousemove','mouseout','click','touchstart','touchmove'],
         plugins:{
           legend:{labels:{color:tc,boxWidth:12,padding:16}},
           tooltip:{
@@ -1103,22 +1121,23 @@ function renderMonthlyChart(){
             backgroundColor:'rgba(15,18,25,.95)',
             borderColor:'rgba(46,54,80,.8)',borderWidth:1,
             titleColor:'#e8eaf2',bodyColor:'#7a82a0',
+            titleFont:{size:13,weight:'bold'},
+            bodyFont:{size:13},
             padding:12,
             callbacks:{
               title:items=>{
                 const i=items[0].dataIndex;
                 const n=moCount[moKeys[i]]||0;
                 const tot=types.reduce((a,tp)=>a+(mo[moKeys[i]][tp]||0),0);
-                return `${MONTH_NAMES[i]} — ${tot.toFixed(1)} km · ${n} sortie${n>1?'s':''}`;
+                return `${MONTH_NAMES[i]}  ·  ${tot.toFixed(1)} km  ·  ${n} sortie${n>1?'s':''}`;
               },
               label:ctx=>`${ctx.dataset.label} : ${ctx.parsed.y} km`,
               afterLabel:ctx=>{
-                // show % of total
+                if(types.length<2)return '';
                 const i=ctx.dataIndex;
                 const tot=types.reduce((a,tp)=>a+(mo[moKeys[i]][tp]||0),0);
-                if(!tot||types.length<2)return '';
-                const pct=Math.round(ctx.parsed.y/tot*100);
-                return `  → ${pct}%`;
+                if(!tot)return '';
+                return `  ${Math.round(ctx.parsed.y/tot*100)}%`;
               }
             }
           },
