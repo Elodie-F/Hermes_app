@@ -1303,15 +1303,35 @@ function exportAll(){
     const raw=localStorage.getItem(LS_KEY)||'[]';
     const cfg=localStorage.getItem(LS_CFG)||'{}';
     const payload=JSON.stringify({version:1,data:JSON.parse(raw),config:JSON.parse(cfg)},null,2);
-    const date=new Date().toISOString().slice(0,10);
-    const a=document.createElement('a');
-    a.href='data:application/json;charset=utf-8,'+encodeURIComponent(payload);
-    a.download=`hermes-backup-${date}.json`;
-    a.style.display='none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>document.body.removeChild(a),200);
+    document.getElementById('export-text').value=payload;
+    document.getElementById('copy-confirm').style.display='none';
+    openModal('modal-export');
+    // Also try download (works on desktop)
+    try{
+      const date=new Date().toISOString().slice(0,10);
+      const a=document.createElement('a');
+      a.href='data:application/json;charset=utf-8,'+encodeURIComponent(payload);
+      a.download=`hermes-backup-${date}.json`;
+      a.style.display='none';
+      document.body.appendChild(a);a.click();
+      setTimeout(()=>document.body.removeChild(a),200);
+    }catch(e2){}
   }catch(e){alert('Erreur export : '+e.message);}
+}
+function copyExport(){
+  const ta=document.getElementById('export-text');
+  ta.select();
+  try{
+    navigator.clipboard.writeText(ta.value).then(()=>{
+      document.getElementById('copy-confirm').style.display='block';
+    }).catch(()=>{
+      document.execCommand('copy');
+      document.getElementById('copy-confirm').style.display='block';
+    });
+  }catch(e){
+    document.execCommand('copy');
+    document.getElementById('copy-confirm').style.display='block';
+  }
 }
 function importAll(e){
   document.getElementById('hist-menu').classList.remove('open');
