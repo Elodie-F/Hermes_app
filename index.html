@@ -774,10 +774,10 @@ function _doStartLive(){
   liveLayer=L.layerGroup().addTo(map);
   liveMarker=null;liveAccCircle=null;
 
-  // setInterval fires getCurrentPosition every N seconds
-  liveWatch=setInterval(()=>{
-    navigator.geolocation.getCurrentPosition(onGps, gpsErrSilent, {enableHighAccuracy:true,maximumAge:0,timeout:10000});
-  }, liveFreqSec*1000);
+  // watchPosition: fires on every new position from the device
+  // We filter by timestamp to only record at the configured interval
+  liveWatch=navigator.geolocation.watchPosition(onGps, gpsErrSilent,
+    {enableHighAccuracy:true, maximumAge:4000, timeout:30000});
 
   liveOn=true;
   document.getElementById('btn-live').className='btn-live recording';
@@ -788,7 +788,7 @@ function _doStartLive(){
   document.querySelector('.map-section').scrollIntoView({behavior:'smooth'});
   liveTicker=setInterval(()=>{const s=Math.floor((Date.now()-liveStart)/1000);document.getElementById('hud-dur').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;},1000);
 }
-function gpsErrSilent(e){console.warn('GPS interval error:',e.code,e.message);}
+function gpsErrSilent(e){console.warn('GPS error:',e.code,e.message);}
 function _gpsPermErr(e){
   document.getElementById('btn-live').disabled=false;
   document.getElementById('live-label').textContent='⏺ Record';
@@ -802,11 +802,14 @@ function _gpsPermErr(e){
 }
 function onGps(pos){
   liveGpsCalls++;
+  document.getElementById('hud-calls').textContent=liveGpsCalls;
   const{latitude:lat,longitude:lon,altitude,speed,accuracy}=pos.coords;
   const ele=altitude||0,time=new Date(pos.timestamp);
   const pt={lat,lon,ele,time};
+  const now=Date.now();
+  const shouldRecord=!liveLastRecorded||(now-liveLastRecorded)>=liveFreqSec*1000;
 
-  // Create or update position marker + accuracy circle
+  // Always update marker + circle
   if(!liveMarker){
     const icon=L.divIcon({html:`<div style="width:15px;height:15px;border-radius:50%;background:var(--danger);border:3px solid #fff;box-shadow:0 0 0 4px rgba(247,100,149,.3)"></div>`,iconSize:[15,15],iconAnchor:[7,7],className:''});
     liveMarker=L.marker([lat,lon],{icon,zIndexOffset:1000}).addTo(map);
@@ -819,19 +822,27 @@ function onGps(pos){
     if(mapVisible)map.panTo([lat,lon],{animate:true,duration:0.5});
   }
 
-  // Record point + draw segment
+  // Update speed HUD from latest position
   if(liveLast){
-    const d=haversine(liveLast,pt);liveDist+=d;
-    const dt=(time-liveLast.time)/1000,kmh=dt>0?(d/dt)*3.6:0;
-    const al=allureOf(kmh);
-    if(al)L.polyline([[liveLast.lat,liveLast.lon],[lat,lon]],{color:al.color,weight:4,opacity:.9}).addTo(liveLayer);
+    const dt=(time-liveLast.time)/1000;
+    const kmh=dt>0?haversine(liveLast,pt)/dt*3.6:0;
     document.getElementById('hud-spd').textContent=(speed!=null?(speed*3.6).toFixed(1):kmh.toFixed(1))+' km/h';
-    document.getElementById('hud-dist').textContent=(liveDist/1000).toFixed(2)+' km';
   }
-  livePts.push(pt);
-  liveLast=pt;
-  document.getElementById('hud-pts').textContent=livePts.length;
-  document.getElementById('hud-calls').textContent=liveGpsCalls;
+
+  // Record point at configured interval only
+  if(shouldRecord){
+    if(liveLast){
+      const d=haversine(liveLast,pt);liveDist+=d;
+      const dt=(time-liveLast.time)/1000,kmh=dt>0?(d/dt)*3.6:0;
+      const al=allureOf(kmh);
+      if(al)L.polyline([[liveLast.lat,liveLast.lon],[lat,lon]],{color:al.color,weight:4,opacity:.9}).addTo(liveLayer);
+      document.getElementById('hud-dist').textContent=(liveDist/1000).toFixed(2)+' km';
+    }
+    livePts.push(pt);
+    liveLast=pt;
+    liveLastRecorded=now;
+    document.getElementById('hud-pts').textContent=livePts.length;
+  }
 }
 function gpsErr(e){
   const msgs={
@@ -844,7 +855,7 @@ function gpsErr(e){
   if(e.code===1){ stopLive(); alert(msgs[1]); }
 }
 function stopLive(){
-  if(liveWatch!=null){clearInterval(liveWatch);liveWatch=null;}
+  if(liveWatch!=null){navigator.geolocation.clearWatch(liveWatch);liveWatch=null;}
   clearInterval(liveTicker);liveOn=false;
   document.getElementById('btn-live').className='btn-live';
   document.getElementById('live-label').textContent='⏺ Record';
