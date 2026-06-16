@@ -767,17 +767,26 @@ function startLive(){
     {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 }
-let liveGpsCalls=0;
+let liveGpsCalls=0, liveWatchFallback=null;
 function _doStartLive(){
   document.getElementById('btn-live').disabled=false;
   livePts=[];liveDist=0;liveLast=null;liveLastRecorded=null;liveStart=Date.now();liveGpsCalls=0;
   liveLayer=L.layerGroup().addTo(map);
   liveMarker=null;liveAccCircle=null;
 
-  // watchPosition: fires on every new position from the device
-  // We filter by timestamp to only record at the configured interval
+  // Primary: watchPosition
   liveWatch=navigator.geolocation.watchPosition(onGps, gpsErrSilent,
     {enableHighAccuracy:true, maximumAge:4000, timeout:30000});
+
+  // Fallback: if watchPosition stops firing, getCurrentPosition every N seconds
+  liveWatchFallback=setInterval(()=>{
+    const elapsed=liveLastRecorded?Date.now()-liveLastRecorded:Infinity;
+    // If no point recorded since 2x the interval, force a fresh request
+    if(elapsed >= liveFreqSec*1000*2){
+      navigator.geolocation.getCurrentPosition(onGps, gpsErrSilent,
+        {enableHighAccuracy:true, maximumAge:0, timeout:10000});
+    }
+  }, liveFreqSec*1000);
 
   liveOn=true;
   document.getElementById('btn-live').className='btn-live recording';
@@ -856,6 +865,7 @@ function gpsErr(e){
 }
 function stopLive(){
   if(liveWatch!=null){navigator.geolocation.clearWatch(liveWatch);liveWatch=null;}
+  if(liveWatchFallback!=null){clearInterval(liveWatchFallback);liveWatchFallback=null;}
   clearInterval(liveTicker);liveOn=false;
   document.getElementById('btn-live').className='btn-live';
   document.getElementById('live-label').textContent='⏺ Record';
