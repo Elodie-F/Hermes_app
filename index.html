@@ -290,6 +290,9 @@ tr:last-child td{border-bottom:none;}
         Aucune donnée
       </div>
       <div id="global-content" style="display:none;flex-direction:column;gap:1rem;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;" id="g-year-pills"></div>
+        </div>
         <div class="stats-grid" id="g-grid"></div>
         <div class="allure-wrap">
           <div class="allure-title">Allures <span class="tip" tabindex="0" style="cursor:help;"><span style="font-size:12px;color:var(--muted);border-bottom:1px dashed var(--muted);">ⓘ</span><span class="tip-box">Calculé uniquement à partir des traces GPS live et des fichiers GPX. Les saisies manuelles ne sont pas incluses.</span></span></div>
@@ -955,19 +958,36 @@ function renderGlobalTab(){
   const noEl=document.getElementById('no-global'),cont=document.getElementById('global-content');
   if(!traces.length){noEl.style.display='flex';cont.style.display='none';return;}
   noEl.style.display='none';cont.style.display='flex';
-  const totalDist=traces.reduce((a,t)=>a+(t.points?t.stats.dist:t.textData.distKm*1000),0);
-  const totalDur=traces.reduce((a,t)=>a+(t.points?(t.stats.duration||0):(t.textData.durSec||0)),0);
-  const allMax=Math.max(0,...traces.filter(t=>t.points&&t.stats.maxSpeed).map(t=>t.stats.maxSpeed));
+
+  // Year pills
+  const curYear=new Date().getFullYear().toString();
+  const years=[...new Set(traces.map(t=>t.meta.date?.slice(0,4)).filter(Boolean))].sort();
+  if(!window._gYear||(!years.includes(window._gYear)&&window._gYear!=='all'))
+    window._gYear=years.includes(curYear)?curYear:(years[years.length-1]||'all');
+
+  const pillsEl=document.getElementById('g-year-pills');
+  pillsEl.innerHTML=[...years,'all'].map(y=>{
+    const lbl=y==='all'?'Toutes':y;
+    const active=window._gYear===y;
+    return`<button onclick="window._gYear='${y}';renderGlobalTab();" style="border:none;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;background:${active?'var(--accent)':'var(--surface2)'};color:${active?'#fff':'var(--muted)'};transition:all .15s;">${lbl}</button>`;
+  }).join('');
+
+  // Filter traces by selected year
+  const trs=window._gYear==='all'?traces:traces.filter(t=>t.meta.date?.startsWith(window._gYear));
+
+  const totalDist=trs.reduce((a,t)=>a+(t.points?t.stats.dist:t.textData.distKm*1000),0);
+  const totalDur=trs.reduce((a,t)=>a+(t.points?(t.stats.duration||0):(t.textData.durSec||0)),0);
+  const allMax=Math.max(0,...trs.filter(t=>t.points&&t.stats.maxSpeed).map(t=>t.stats.maxSpeed));
   const avgSpd=totalDur>0?(totalDist/totalDur)*3.6:0;
   document.getElementById('g-grid').innerHTML=
     statCard('Distance totale',(totalDist/1000).toFixed(1),'km','c-accent')+
     statCard('Durée totale',fmtDur(totalDur))+
     statCard('Vitesse moy.',avgSpd.toFixed(1),'km/h','c-green')+
     statCard('Vitesse max',allMax?allMax.toFixed(1):'—','km/h','c-warn')+
-    statCard('Sorties',traces.length);
+    statCard('Sorties',trs.length);
 
-  // allure GPS only — with distance per allure
-  const gpsTr=traces.filter(t=>t.points);
+  // allure GPS only — filtered
+  const gpsTr=trs.filter(t=>t.points);
   const gA=Object.fromEntries(ALLURES.map(a=>[a.key,0]));
   const gADist=Object.fromEntries(ALLURES.map(a=>[a.key,0]));
   gpsTr.forEach(t=>{
@@ -979,7 +999,6 @@ function renderGlobalTab(){
     }
   });
   const gT=Object.values(gA).reduce((a,b)=>a+b,0)||1;
-  const gTDist=Object.values(gADist).reduce((a,b)=>a+b,0)||1;
   document.getElementById('g-allure-bars').innerHTML=ALLURES.map(a=>{
     const dur=gA[a.key],pct=Math.round(dur/gT*100);
     const distKm=(gADist[a.key]/1000).toFixed(1);
@@ -994,12 +1013,13 @@ function renderGlobalTab(){
 
   const gc='rgba(46,54,80,.8)',tc='#7a82a0';
 
-  // monthly — build full year view with year selector
-  const years=[...new Set(traces.map(t=>t.meta.date?.slice(0,4)).filter(Boolean))].sort();
+  // monthly chart year selector — sync with pill selection
   const mySel=document.getElementById('monthly-year');
   const prevY=mySel.value;
   mySel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
-  if(prevY&&years.includes(prevY))mySel.value=prevY;
+  // sync monthly chart to pill year (if specific year selected)
+  if(window._gYear!=='all'&&years.includes(window._gYear))mySel.value=window._gYear;
+  else if(prevY&&years.includes(prevY))mySel.value=prevY;
   else if(years.length)mySel.value=years[years.length-1];
   renderMonthlyChart();
   updateComparisonSelectors();
