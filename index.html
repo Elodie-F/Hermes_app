@@ -166,18 +166,39 @@ tr:last-child td{border-bottom:none;}
     <button id="page-tab-sorties" onclick="showPage('sorties')" style="border:none;border-radius:8px;padding:6px 14px;font-size:14px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s;">Sorties</button>
     <button id="page-tab-frais" onclick="showPage('frais')" style="border:none;border-radius:8px;padding:6px 14px;font-size:14px;font-weight:600;cursor:pointer;background:none;color:var(--muted);transition:all .15s;">Dépenses</button>
   </div>
-  <!-- Save button -->
+  <!-- Settings + Save button -->
   <div style="position:relative;">
-    <button class="btn-hist" onclick="toggleSaveMenu(event)" title="Sauvegarde">💾 Save ▾</button>
-    <div class="hist-menu" id="save-menu">
-      <div class="hist-item" onclick="closeSaveMenu();exportAll()">📤 Exporter toutes les données</div>
-      <div class="hist-item" onclick="closeSaveMenu();document.getElementById('import-input').click()">📥 Importer une sauvegarde</div>
+    <button class="btn-hist" onclick="toggleSaveMenu(event)" title="Paramètres & Sauvegarde" style="padding:9px 12px;">⚙</button>
+    <div class="hist-menu" id="save-menu" style="right:0;left:auto;min-width:240px;">
+      <div style="padding:8px 14px 4px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Seuils d'allure</div>
+      <div style="padding:4px 14px 8px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#38d9a9;display:inline-block;"></span>Pas</span>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <input id="cfg-walk" type="number" min="1" max="50" step="0.5" value="7.5" oninput="applyAllureConfig()" style="width:52px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 6px;text-align:right;">
+            <span style="font-size:12px;color:var(--muted);">km/h</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#f7a94f;display:inline-block;"></span>Trot</span>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <input id="cfg-trot" type="number" min="1" max="80" step="0.5" value="30" oninput="applyAllureConfig()" style="width:52px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 6px;text-align:right;">
+            <span style="font-size:12px;color:var(--muted);">km/h</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#f76495;display:inline-block;"></span>Galop</span>
+          <input id="cfg-galop" type="text" value="≥ 30" disabled style="width:52px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:13px;padding:3px 6px;text-align:right;">
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button onclick="resetAllureConfig()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 4px;">↺ Réinitialiser</button>
+        </div>
+      </div>
+      <div style="padding:4px 0;">
+        <div class="hist-item" onclick="closeSaveMenu();exportAll()">📤 Exporter les données</div>
+        <div class="hist-item" onclick="closeSaveMenu();document.getElementById('import-input').click()">📥 Importer une sauvegarde</div>
+      </div>
     </div>
-  </div>
-
-  <!-- Settings button (moved to action bar) -->
-  <div id="settings-btn-wrap" style="display:none;position:relative;">
-    <button class="btn-hist" onclick="toggleSettingsMenu(event)" title="Paramètres">⚙</button>
   </div>
 
   <input type="file" id="file-input" accept=".gpx" multiple style="display:none">
@@ -186,7 +207,7 @@ tr:last-child td{border-bottom:none;}
 
 <!-- ══ MAIN ═════════════════════════════════════════════════════════════════ -->
 <main id="main">
-<div id="page-sorties">
+<div id="page-sorties" style="display:flex;flex-direction:column;gap:.75rem;">
 
   <!-- Sorties action bar -->
   <div class="action-bar">
@@ -198,38 +219,7 @@ tr:last-child td{border-bottom:none;}
         <div class="hist-item" onclick="document.getElementById('hist-menu').classList.remove('open');openPasteModal()">📋 Coller un tableau</div>
       </div>
     </div>
-    <div id="settings-inline-wrap" style="position:relative;flex-shrink:0;">
-      <button class="btn-hist" onclick="toggleSettingsMenu(event)" title="Paramètres" style="padding:9px 12px;">⚙</button>
-      <div class="hist-menu" id="settings-menu">
-        <div style="padding:10px 14px 4px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Seuils d'allure</div>
-        <div style="padding:6px 14px 12px;display:flex;flex-direction:column;gap:10px;min-width:220px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
-            <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#38d9a9;display:inline-block;"></span>Pas en-dessous de</span>
-            <div style="display:flex;align-items:center;gap:4px;">
-              <input id="cfg-walk" type="number" min="1" max="50" step="0.5" value="7.5" oninput="applyAllureConfig()" style="width:56px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 6px;text-align:right;">
-              <span style="font-size:12px;color:var(--muted);">km/h</span>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
-            <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#f7a94f;display:inline-block;"></span>Trot en-dessous de</span>
-            <div style="display:flex;align-items:center;gap:4px;">
-              <input id="cfg-trot" type="number" min="1" max="80" step="0.5" value="30" oninput="applyAllureConfig()" style="width:56px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 6px;text-align:right;">
-              <span style="font-size:12px;color:var(--muted);">km/h</span>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
-            <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#f76495;display:inline-block;"></span>Galop au-delà</span>
-            <div style="display:flex;align-items:center;gap:4px;">
-              <input id="cfg-galop" type="text" value="≥ 30" disabled style="width:56px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:13px;padding:3px 6px;text-align:right;">
-              <span style="font-size:12px;color:var(--muted);">km/h</span>
-            </div>
-          </div>
-          <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:flex-end;">
-            <button onclick="resetAllureConfig()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 4px;">↺ Réinitialiser</button>
-          </div>
-        </div>
-      </div>
-    </div><!-- /settings-inline-wrap -->
+
   </div><!-- /action-bar -->
 
   <!-- Map section -->
@@ -609,7 +599,8 @@ let mapVisible=false;
 
 // ── SETTINGS MENU ──────────────────────────────────────────────────────────
 const LS_CFG='hermes_cfg_v1';
-function toggleSettingsMenu(e){
+function toggleSettingsMenu(e){ // kept for compat — now handled by toggleSaveMenu
+
   e.stopPropagation();
   const m=document.getElementById('settings-menu');
   const opening=!m.classList.contains('open');
@@ -1588,7 +1579,7 @@ function showTab(name,btn){
 
 // ══ PAGE NAVIGATION ═══════════════════════════════════════════════════════
 function showPage(name){
-  document.getElementById('page-sorties').style.display=name==='sorties'?'block':'none';
+  document.getElementById('page-sorties').style.display=name==='sorties'?'flex':'none';
   document.getElementById('page-frais').style.display=name==='frais'?'flex':'none';
   document.getElementById('page-tab-sorties').style.background=name==='sorties'?'var(--accent)':'none';
   document.getElementById('page-tab-sorties').style.color=name==='sorties'?'#fff':'var(--muted)';
@@ -1740,7 +1731,7 @@ function renderFraisStats(){
     statCard('Total',total.toFixed(2),'€','c-accent')+
     statCard('Dépenses',trf.length)+
     statCard('Moy./mois',avgMois.toFixed(0),'€','c-green')+
-    (topCat?statCard('Catégorie principale',topCat[0],'','c-warn'):'');
+    (topCat?statCard('Top catégorie',`${topCat[0]}<br><small style="font-size:13px;font-weight:400;">${topCat[1].toFixed(2)} €</small>`,'','c-warn'):'');
 
   // Cat filter pills
   const cats=[...new Set(frais.map(f=>f.cat).filter(Boolean))].sort();
