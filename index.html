@@ -29,7 +29,7 @@ html{font-size:16px;-webkit-text-size-adjust:100%;}
 .topbar h1{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-right:auto;white-space:nowrap;}
 #storage-indicator{font-size:11px;color:var(--muted);white-space:nowrap;display:none;}
 @media(min-width:480px){#storage-indicator{display:block;}}
-.btn-hist{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;position:relative;-webkit-tap-highlight-color:transparent;}
+.btn-hist{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;position:relative;-webkit-tap-highlight-color:transparent;width:auto;}
 
 /* hist dropdown */
 .hist-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);min-width:200px;z-index:2000;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);}
@@ -189,17 +189,16 @@ tr:last-child td{border-bottom:none;}
 <div id="page-sorties">
 
   <!-- Sorties action bar -->
-  <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
-    <div style="position:relative;">
-      <button class="btn-hist" onclick="toggleHistMenu(event)" style="display:flex;align-items:center;gap:6px;">＋ Ajouter une sortie ▾</button>
-      <div class="hist-menu" id="hist-menu">
+  <div class="action-bar">
+    <div style="position:relative;flex-shrink:0;">
+      <button class="btn-hist" onclick="toggleHistMenu(event)">＋ Sortie ▾</button>
+      <div class="hist-menu" id="hist-menu" style="left:0;right:auto;">
         <div class="hist-item" onclick="document.getElementById('hist-menu').classList.remove('open');openGpxPicker()">📂 Importer un GPX</div>
         <div class="hist-item" onclick="document.getElementById('hist-menu').classList.remove('open');openTextModal()">✏️ Saisie manuelle</div>
         <div class="hist-item" onclick="document.getElementById('hist-menu').classList.remove('open');openPasteModal()">📋 Coller un tableau</div>
       </div>
     </div>
-    <span id="storage-indicator" style="font-size:12px;color:var(--muted);margin-left:auto;"></span>
-    <div id="settings-inline-wrap" style="position:relative;">
+    <div id="settings-inline-wrap" style="position:relative;flex-shrink:0;">
       <button class="btn-hist" onclick="toggleSettingsMenu(event)" title="Paramètres" style="padding:9px 12px;">⚙</button>
       <div class="hist-menu" id="settings-menu">
         <div style="padding:10px 14px 4px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Seuils d'allure</div>
@@ -230,8 +229,9 @@ tr:last-child td{border-bottom:none;}
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </div><!-- /settings-inline-wrap -->
+    <span id="storage-indicator" style="font-size:12px;color:var(--muted);margin-left:auto;white-space:nowrap;"></span>
+  </div><!-- /action-bar -->
 
   <!-- Map section -->
   <div class="map-section">
@@ -241,7 +241,7 @@ tr:last-child td{border-bottom:none;}
     </div>
     <div class="map-wrap">
       <div id="map" class="collapsed"></div>
-      <div class="map-legend" id="map-legend">
+      <div class="map-legend" id="map-legend" style="display:none;">
         <div class="legend-row"><div class="legend-line" style="background:var(--c-trot)"></div>Trot &lt;35</div>
         <div class="legend-row"><div class="legend-line" style="background:var(--c-galop)"></div>Galop ≥35</div>
       </div>
@@ -330,18 +330,18 @@ tr:last-child td{border-bottom:none;}
 </div><!-- /page-sorties -->
 
 <!-- ══ PAGE FRAIS ═══════════════════════════════════════════════════════════ -->
-<div id="page-frais" style="display:none;flex-direction:column;gap:.75rem;padding:.75rem;">
+<div id="page-frais" style="display:none;flex-direction:column;gap:.75rem;">
 
   <!-- Frais actions bar -->
-  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-    <div style="position:relative;">
-      <button class="btn-hist" onclick="toggleFraisAddMenu(event)" style="display:flex;align-items:center;gap:6px;">＋ Dépense ▾</button>
-      <div class="hist-menu" id="frais-add-menu">
+  <div class="action-bar">
+    <div style="position:relative;flex-shrink:0;">
+      <button class="btn-hist" onclick="toggleFraisAddMenu(event)">＋ Dépense ▾</button>
+      <div class="hist-menu" id="frais-add-menu" style="right:auto;left:0;">
         <div class="hist-item" onclick="closeFraisMenu();openFraisPasteModal()">📋 Coller un tableau</div>
         <div class="hist-item" onclick="closeFraisMenu();openFraisManualModal()">✏️ Saisie manuelle</div>
       </div>
     </div>
-    <span id="frais-storage-indicator" style="font-size:12px;color:var(--muted);align-self:center;margin-left:auto;"></span>
+    <span id="frais-storage-indicator" style="font-size:12px;color:var(--muted);margin-left:auto;"></span>
   </div>
 
   <!-- Stats section -->
@@ -693,7 +693,6 @@ function toggleMap(cb){
   document.getElementById('map-legend').style.display=mapVisible?'flex':'none';
   if(mapVisible)setTimeout(()=>{map.invalidateSize();if(cb)cb();},280);
 }
-
 // ── HELPERS ────────────────────────────────────────────────────────────────
 function allureOf(v){if(v<=0.5)return null;return ALLURES.find(a=>v<=a.max)||ALLURES[ALLURES.length-1];}
 function haversine(a,b){
@@ -1315,7 +1314,7 @@ function renderSynthese(){
     return`<tr id="synth-row-${i}" style="${isSelected?'background:rgba(79,142,247,.12);':''}" onclick="synthSelectTrace(${i})">
       <td onclick="event.stopPropagation()"><input type="checkbox" ${isChecked?'checked':''} onchange="toggleRowSel(${i},this.checked)" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);"></td>
       <td style="white-space:nowrap;">${fmtDate(t.meta.date)}</td>
-      <td style="text-align:center;"><input type="checkbox" ${t.meta.type==='cheval'?'checked':''} disabled style="width:16px;height:16px;accent-color:var(--accent);cursor:default;"></td>
+      <td style="text-align:center;font-size:15px;">${t.meta.type==='cheval'?'<span style="color:var(--accent2);">✔</span>':'<span style="color:var(--border);">—</span>'}</td>
       <td style="font-weight:600;color:var(--accent);">${dist} <span style="color:var(--muted);font-size:11px;">km</span></td>
       <td>${dur}</td>
       <td>${avg}${avg!=='—'?'<span style="color:var(--muted);font-size:11px;"> km/h</span>':''}</td>
@@ -1407,7 +1406,17 @@ function synthSelectTrace(i){
 function synthShowMap(i){
   if(!traces[i]?.points)return;
   selectedIdx=i;
-  const b=L.latLngBounds(traces[i].points.map(p=>[p.lat,p.lon]));
+  const t=traces[i];
+  const b=L.latLngBounds(t.points.map(p=>[p.lat,p.lon]));
+  // Toggle: if already on map, hide it; if hidden or map closed, show it
+  const isVisible=t.layers&&map.hasLayer(t.layers);
+  if(isVisible){
+    t.layers.remove();
+    renderSynthese();
+    return;
+  }
+  // Ensure layers added back
+  if(t.layers&&!map.hasLayer(t.layers))t.layers.addTo(map);
   if(!mapVisible){
     toggleMap(()=>{
       map.fitBounds(b,{padding:[40,40]});
@@ -1537,9 +1546,9 @@ function importAll(e){
       if(!payload.version||!Array.isArray(payload.data))
         throw new Error('Format invalide — ce fichier n\'est pas une sauvegarde Hermès.');
       const existing=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
-      let merged;
+      let merged, choice=false;
       if(existing.length){
-        const choice=confirm(`Tu as déjà ${existing.length} trace${existing.length>1?'s':''} enregistrée${existing.length>1?'s':''}.\n\nOK = Fusionner\nAnnuler = Remplacer tout`);
+        choice=confirm(`Tu as déjà ${existing.length} trace${existing.length>1?'s':''} enregistrée${existing.length>1?'s':''}.\n\nOK = Fusionner\nAnnuler = Remplacer tout`);
         if(choice){
           const keys=new Set(existing.map(t=>t.name+'|'+t.meta?.date));
           const toAdd=payload.data.filter(t=>!keys.has(t.name+'|'+t.meta?.date));
