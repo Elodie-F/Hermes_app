@@ -29,13 +29,7 @@ html{font-size:16px;-webkit-text-size-adjust:100%;}
 .topbar h1{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-right:auto;white-space:nowrap;}
 #storage-indicator{font-size:11px;color:var(--muted);white-space:nowrap;display:none;}
 @media(min-width:480px){#storage-indicator{display:block;}}
-.btn-live{background:var(--accent2);color:#0f1219;border:none;border-radius:var(--radius);padding:10px 14px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
-.btn-live.recording{background:#2e1a1a;color:var(--danger);border:1px solid var(--danger);animation:pulse-border 1.2s infinite;}
 .btn-hist{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;position:relative;-webkit-tap-highlight-color:transparent;}
-.rec-dot{width:9px;height:9px;border-radius:50%;background:currentColor;display:none;}
-.rec-dot.on{display:inline-block;animation:blink 1s infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
-@keyframes pulse-border{0%,100%{box-shadow:0 0 0 0 rgba(247,100,149,.4);}50%{box-shadow:0 0 0 6px rgba(247,100,149,0);}}
 
 /* hist dropdown */
 .hist-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);min-width:200px;z-index:2000;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);}
@@ -45,15 +39,6 @@ html{font-size:16px;-webkit-text-size-adjust:100%;}
 
 /* ── MAIN SCROLL ── */
 main{flex:1;overflow-y:auto;padding:.75rem;display:flex;flex-direction:column;gap:.75rem;}
-
-/* ── LIVE HUD ── */
-.live-hud{background:var(--surface);border:1px solid var(--danger);border-radius:var(--radius);padding:.75rem;display:none;grid-template-columns:repeat(2,1fr);gap:.5rem .75rem;}
-.live-hud.on{display:grid;}
-@media(min-width:480px){.live-hud.on{display:flex;flex-wrap:wrap;gap:1rem;}}
-.hud-cell{display:flex;flex-direction:column;gap:1px;}
-.hud-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
-.hud-val{font-size:22px;font-weight:700;color:var(--text);}
-.hud-val.green{color:var(--accent2);}
 
 /* ── MAP SECTION ── */
 .map-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
@@ -128,7 +113,6 @@ canvas{max-height:200px;}
 .badge-pied{background:rgba(79,142,247,.2);color:#4f8ef7;}
 .badge-cheval{background:rgba(247,169,79,.2);color:#f7a94f;}
 
-
 /* comment */
 .comment-box{background:var(--surface2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--muted);font-style:italic;line-height:1.5;}
 
@@ -168,7 +152,6 @@ tr:last-child td{border-bottom:none;}
 .mbtn-primary{background:var(--accent);color:#fff;}
 .mbtn-ghost{background:var(--surface2);color:var(--muted);}
 
-
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
@@ -178,85 +161,86 @@ tr:last-child td{border-bottom:none;}
 
 <!-- ══ TOP BAR ══════════════════════════════════════════════════════════════ -->
 <div class="topbar">
-  <h1>🐴 Hermès</h1>
-  <span id="storage-indicator"></span>
-
-  <!-- Sortie live -->
-  <button class="btn-live" id="btn-live" onclick="toggleRecording()">
-    <span class="rec-dot" id="rec-dot"></span>
-    <span id="live-label">⏺ Record</span>
-  </button>
-
-  <!-- Settings button -->
+  <h1>🐴&nbsp;Hermès</h1>
+  <div style="display:flex;gap:3px;background:var(--surface2);border-radius:10px;padding:3px;">
+    <button id="page-tab-sorties" onclick="showPage('sorties')" style="border:none;border-radius:8px;padding:6px 14px;font-size:14px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s;">Sorties</button>
+    <button id="page-tab-frais" onclick="showPage('frais')" style="border:none;border-radius:8px;padding:6px 14px;font-size:14px;font-weight:600;cursor:pointer;background:none;color:var(--muted);transition:all .15s;">Dépenses</button>
+  </div>
+  <!-- Save button -->
   <div style="position:relative;">
+    <button class="btn-hist" onclick="toggleSaveMenu(event)" title="Sauvegarde">💾 Save ▾</button>
+    <div class="hist-menu" id="save-menu">
+      <div class="hist-item" onclick="closeSaveMenu();exportAll()">📤 Exporter toutes les données</div>
+      <div class="hist-item" onclick="closeSaveMenu();document.getElementById('import-input').click()">📥 Importer une sauvegarde</div>
+    </div>
+  </div>
+
+  <!-- Settings button (moved to action bar) -->
+  <div id="settings-btn-wrap" style="display:none;position:relative;">
     <button class="btn-hist" onclick="toggleSettingsMenu(event)" title="Paramètres">⚙</button>
-    <div class="hist-menu" id="settings-menu">
-      <div style="padding:10px 14px 4px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Seuils d'allure</div>
-      <div style="padding:6px 14px 12px;display:flex;flex-direction:column;gap:10px;min-width:220px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
-          <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#38d9a9;display:inline-block;"></span>Pas en-dessous de</span>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <input id="cfg-walk" type="number" min="1" max="50" step="0.5" value="7.5" oninput="applyAllureConfig()" style="width:56px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 6px;text-align:right;">
-            <span style="font-size:12px;color:var(--muted);">km/h</span>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
-          <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#f7a94f;display:inline-block;"></span>Trot en-dessous de</span>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <input id="cfg-trot" type="number" min="1" max="80" step="0.5" value="30" oninput="applyAllureConfig()" style="width:56px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 6px;text-align:right;">
-            <span style="font-size:12px;color:var(--muted);">km/h</span>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
-          <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#f76495;display:inline-block;"></span>Galop au-delà</span>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <input id="cfg-galop" type="text" value="≥ 30" disabled style="width:56px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:13px;padding:3px 6px;text-align:right;">
-            <span style="font-size:12px;color:var(--muted);">km/h</span>
-          </div>
-        </div>
-        <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:flex-end;">
-          <button onclick="resetAllureConfig()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 4px;">↺ Réinitialiser</button>
-        </div>
-      </div>
-    </div>
   </div>
 
-  <!-- Historique dropdown -->
-  <div style="position:relative;">
-    <button class="btn-hist" onclick="toggleHistMenu(event)">📁 Historique ▾</button>
-    <div class="hist-menu" id="hist-menu">
-      <div class="hist-item" onclick="openGpxPicker()">📂 Importer un GPX</div>
-      <div class="hist-item" onclick="openTextModal()">✏️ Saisie manuelle</div>
-      <div class="hist-item" onclick="openPasteModal()">📋 Coller un tableau</div>
-      <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
-      <div class="hist-item" onclick="exportAll()">💾 Exporter toutes les données</div>
-      <div class="hist-item" onclick="document.getElementById('import-input').click()">📥 Importer une sauvegarde</div>
-      <input type="file" id="import-input" accept=".json" style="display:none" onchange="importAll(event)">
-    </div>
-    <input type="file" id="file-input" accept=".gpx" multiple style="display:none">
-  </div>
+  <input type="file" id="file-input" accept=".gpx" multiple style="display:none">
+  <input type="file" id="import-input" accept=".json" style="display:none" onchange="importAll(event)">
 </div>
 
 <!-- ══ MAIN ═════════════════════════════════════════════════════════════════ -->
 <main id="main">
+<div id="page-sorties">
 
-  <!-- Live HUD -->
-  <div class="live-hud" id="live-hud">
-    <div class="hud-cell"><div class="hud-label">Durée</div><div class="hud-val" id="hud-dur">0:00</div></div>
-    <div class="hud-cell"><div class="hud-label">Distance</div><div class="hud-val" id="hud-dist">0.00 km</div></div>
-    <div class="hud-cell"><div class="hud-label">Vitesse</div><div class="hud-val green" id="hud-spd">— km/h</div></div>
-    <div class="hud-cell"><div class="hud-label">Points GPS</div><div class="hud-val" id="hud-pts">0</div></div>
-    <div class="hud-cell"><div class="hud-label">Appels GPS</div><div class="hud-val" id="hud-calls" style="color:var(--muted);font-size:16px;">0</div></div>
+  <!-- Sorties action bar -->
+  <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+    <div style="position:relative;">
+      <button class="btn-hist" onclick="toggleHistMenu(event)" style="display:flex;align-items:center;gap:6px;">＋ Ajouter une sortie ▾</button>
+      <div class="hist-menu" id="hist-menu">
+        <div class="hist-item" onclick="document.getElementById('hist-menu').classList.remove('open');openGpxPicker()">📂 Importer un GPX</div>
+        <div class="hist-item" onclick="document.getElementById('hist-menu').classList.remove('open');openTextModal()">✏️ Saisie manuelle</div>
+        <div class="hist-item" onclick="document.getElementById('hist-menu').classList.remove('open');openPasteModal()">📋 Coller un tableau</div>
+      </div>
+    </div>
+    <span id="storage-indicator" style="font-size:12px;color:var(--muted);margin-left:auto;"></span>
+    <div id="settings-inline-wrap" style="position:relative;">
+      <button class="btn-hist" onclick="toggleSettingsMenu(event)" title="Paramètres" style="padding:9px 12px;">⚙</button>
+      <div class="hist-menu" id="settings-menu">
+        <div style="padding:10px 14px 4px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Seuils d'allure</div>
+        <div style="padding:6px 14px 12px;display:flex;flex-direction:column;gap:10px;min-width:220px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+            <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#38d9a9;display:inline-block;"></span>Pas en-dessous de</span>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <input id="cfg-walk" type="number" min="1" max="50" step="0.5" value="7.5" oninput="applyAllureConfig()" style="width:56px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 6px;text-align:right;">
+              <span style="font-size:12px;color:var(--muted);">km/h</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+            <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#f7a94f;display:inline-block;"></span>Trot en-dessous de</span>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <input id="cfg-trot" type="number" min="1" max="80" step="0.5" value="30" oninput="applyAllureConfig()" style="width:56px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:3px 6px;text-align:right;">
+              <span style="font-size:12px;color:var(--muted);">km/h</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
+            <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#f76495;display:inline-block;"></span>Galop au-delà</span>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <input id="cfg-galop" type="text" value="≥ 30" disabled style="width:56px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:13px;padding:3px 6px;text-align:right;">
+              <span style="font-size:12px;color:var(--muted);">km/h</span>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:flex-end;">
+            <button onclick="resetAllureConfig()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 4px;">↺ Réinitialiser</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Map section -->
   <div class="map-section">
     <div class="map-header" onclick="toggleMap()">
       <span>🗺 Carte</span>
-      <span class="map-toggle" id="map-toggle-lbl">Masquer ▲</span>
+      <span class="map-toggle" id="map-toggle-lbl">Afficher ▼</span>
     </div>
     <div class="map-wrap">
-      <div id="map"></div>
+      <div id="map" class="collapsed"></div>
       <div class="map-legend" id="map-legend">
         <div class="legend-row"><div class="legend-line" style="background:var(--c-trot)"></div>Trot &lt;35</div>
         <div class="legend-row"><div class="legend-line" style="background:var(--c-galop)"></div>Galop ≥35</div>
@@ -315,16 +299,101 @@ tr:last-child td{border-bottom:none;}
         </div>
         <div class="synth-wrap">
           <table id="synth-table">
-            <thead><tr>
-              <th></th><th>Date</th><th>Type</th>
-              <th>Distance</th><th>Durée</th><th>Moy.</th><th>Max</th><th>Actions</th>
-            </tr></thead>
+            <thead>
+              <tr id="synth-sel-bar" style="display:none;background:var(--surface2);">
+                <td colspan="8" style="padding:8px 10px;">
+                  <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+                    <span id="sel-count" style="color:var(--text);font-weight:600;"></span>
+                    <button onclick="toggleSelectionMap()" style="border:none;background:var(--surface);color:var(--text);border-radius:8px;padding:5px 12px;font-size:13px;cursor:pointer;">🗺 Afficher/Masquer</button>
+                    <button onclick="deleteSelection()" style="border:none;background:#2e1a1a;color:var(--danger);border-radius:8px;padding:5px 12px;font-size:13px;cursor:pointer;">🗑 Supprimer</button>
+                    <button onclick="clearSelection()" style="border:none;background:none;color:var(--muted);font-size:12px;cursor:pointer;margin-left:auto;">✕ Désélectionner</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <th style="width:36px;"><input type="checkbox" id="sel-all" onchange="toggleSelectAll(this.checked)" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);"></th>
+                <th onclick="sortSynth('date')" style="cursor:pointer;user-select:none;">Date <span id="sort-date"></span></th>
+                <th onclick="sortSynth('cheval')" style="cursor:pointer;user-select:none;white-space:nowrap;">À cheval <span id="sort-cheval"></span></th>
+                <th onclick="sortSynth('dist')" style="cursor:pointer;user-select:none;">Distance <span id="sort-dist"></span></th>
+                <th onclick="sortSynth('dur')" style="cursor:pointer;user-select:none;">Durée <span id="sort-dur"></span></th>
+                <th onclick="sortSynth('avg')" style="cursor:pointer;user-select:none;">Moy. <span id="sort-avg"></span></th>
+                <th onclick="sortSynth('max')" style="cursor:pointer;user-select:none;">Max <span id="sort-max"></span></th>
+                <th>Actions</th>
+              </tr>
+            </thead>
             <tbody id="synth-body"></tbody>
           </table>
         </div>
       </div>
     </div>
   </div>
+</div><!-- /page-sorties -->
+
+<!-- ══ PAGE FRAIS ═══════════════════════════════════════════════════════════ -->
+<div id="page-frais" style="display:none;flex-direction:column;gap:.75rem;padding:.75rem;">
+
+  <!-- Frais actions bar -->
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    <div style="position:relative;">
+      <button class="btn-hist" onclick="toggleFraisAddMenu(event)" style="display:flex;align-items:center;gap:6px;">＋ Dépense ▾</button>
+      <div class="hist-menu" id="frais-add-menu">
+        <div class="hist-item" onclick="closeFraisMenu();openFraisPasteModal()">📋 Coller un tableau</div>
+        <div class="hist-item" onclick="closeFraisMenu();openFraisManualModal()">✏️ Saisie manuelle</div>
+      </div>
+    </div>
+    <span id="frais-storage-indicator" style="font-size:12px;color:var(--muted);align-self:center;margin-left:auto;"></span>
+  </div>
+
+  <!-- Stats section -->
+  <div class="stats-section">
+    <div class="stats-tabs">
+      <button class="stab active" onclick="showFraisTab('stats',this)">Statistiques</button>
+      <button class="stab" onclick="showFraisTab('detail',this)">Détail</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="tab-panel active" id="ftab-stats">
+      <div id="fno-stats" class="no-data"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>Aucune dépense enregistrée</div>
+      <div id="fstats-content" style="display:none;flex-direction:column;gap:1rem;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="f-year-pills"></div>
+        <div class="stats-grid" id="f-grid"></div>
+        <div class="chart-wrap">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;flex-wrap:wrap;gap:8px;">
+            <div class="chart-title" style="margin:0;" id="f-chart-title">Dépenses par mois (€)</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;" id="f-cat-pills"></div>
+          </div>
+          <canvas id="chart-frais-monthly" style="height:380px;max-height:380px;"></canvas>
+        </div>
+        <div class="chart-wrap"><div class="chart-title">Répartition par catégorie</div><canvas id="chart-frais-cat" style="max-height:260px;"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Détail -->
+    <div class="tab-panel" id="ftab-detail">
+      <div id="fno-detail" class="no-data"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>Aucune dépense enregistrée</div>
+      <div id="fdetail-content" style="display:none;flex-direction:column;gap:1rem;">
+        <div class="year-sel">
+          <label>Année</label>
+          <select id="f-year-sel" onchange="renderFraisDetail()"><option value="all">Toutes</option></select>
+        </div>
+        <div class="synth-wrap">
+          <table id="frais-table">
+            <thead><tr>
+              <th onclick="sortFrais('date')" style="cursor:pointer;">Date <span id="fsort-date">↓</span></th>
+              <th onclick="sortFrais('cat')" style="cursor:pointer;">Catégorie <span id="fsort-cat"></span></th>
+              <th>Description</th>
+              <th onclick="sortFrais('montant')" style="cursor:pointer;">Montant <span id="fsort-montant"></span></th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="frais-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-frais -->
+
 </main>
 
 <!-- ══ MODAL : PASTE IMPORT ═════════════════════════════════════════════════ -->
@@ -374,6 +443,11 @@ tr:last-child td{border-bottom:none;}
     <div class="field"><label>Type</label>
       <select id="gm-type"><option value="pied">🚶 À pied</option><option value="cheval">🐴 À cheval</option></select>
     </div>
+    <div class="field" id="gm-dur-field" style="display:none;">
+      <label>Durée totale <span style="color:var(--muted);font-weight:400;">(pas de timestamps dans ce fichier)</span></label>
+      <input id="gm-dur" type="text" placeholder="ex : 2h37 ou 1h30">
+      <div style="font-size:11px;color:var(--muted);margin-top:3px;">Hermès va générer les timestamps automatiquement pour calculer les vitesses.</div>
+    </div>
     <div class="field"><label>Commentaire</label><textarea id="gm-comment" placeholder="Notes…"></textarea></div>
     <div class="modal-actions">
       <button class="mbtn mbtn-ghost" onclick="closeModal('modal-gpx')">Annuler</button>
@@ -404,15 +478,15 @@ tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
-
 <!-- ══ MODAL : DETAIL ══════════════════════════════════════════════════════ -->
 <div class="modal-bg" id="modal-detail">
   <div class="modal">
     <h2>Détail de la sortie</h2>
     <div class="field"><label>Date</label><input id="dm-date" type="date"></div>
     <div class="field"><label>Type</label>
-      <select id="dm-type"><option value="pied">🚶 À pied</option><option value="cheval">🐴 À cheval</option></select>
+      <select id="dm-type"><option value="pied">À pied</option><option value="cheval">À cheval</option></select>
     </div>
+    <div class="field" id="dm-dur-field"><label>Durée <span style="color:var(--muted);font-weight:400;font-size:11px;">(ex: 1h30, 45m, 2:30)</span></label><input id="dm-dur" type="text" placeholder="1h30"></div>
     <div class="field"><label>Commentaire</label><textarea id="dm-comment" placeholder="Notes…"></textarea></div>
     <div class="stats-grid" id="dm-stats" style="margin-top:.25rem;"></div>
     <div class="allure-wrap" id="dm-allure-wrap" style="display:none;">
@@ -427,6 +501,88 @@ tr:last-child td{border-bottom:none;}
       <button class="mbtn mbtn-ghost" onclick="closeModal('modal-detail')">Fermer</button>
       <button class="mbtn mbtn-primary" onclick="saveDetail()">Enregistrer</button>
     </div>
+  </div>
+</div>
+
+
+<!-- ══ MODAL : FRAIS PASTE ════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-frais-paste">
+  <div class="modal" style="width:480px;">
+    <div class="modal-src">📋 Import depuis Google Sheets</div>
+    <h2>Coller un tableau de frais</h2>
+    <p style="font-size:13px;color:var(--muted);line-height:1.5;">
+      Colonnes attendues :<br>
+      <code style="font-size:12px;color:var(--accent2);">Year · Month · Date · Infos · Montant · Catégorie</code>
+    </p>
+    <div class="field"><label>Données</label><textarea id="fpaste-input" style="min-height:120px;font-family:monospace;font-size:12px;" placeholder="Colle ici…"></textarea></div>
+    <div id="fpaste-preview" style="font-size:13px;color:var(--muted);"></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-ghost" onclick="closeModal('modal-frais-paste')">Annuler</button>
+      <button class="mbtn mbtn-primary" onclick="confirmFraisPaste()">Importer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL : FRAIS MANUAL ═══════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-frais-manual">
+  <div class="modal">
+    <div class="modal-src">✏️ Saisie manuelle</div>
+    <h2>Ajouter une dépense</h2>
+    <div class="field"><label>Date</label><input id="fm-date" type="date"></div>
+    <div class="field"><label>Catégorie</label>
+      <select id="fm-cat">
+        <option value="Soins">Soins</option>
+        <option value="Alimentation">Alimentation</option>
+        <option value="Pension">Pension</option>
+        <option value="Matériel">Matériel</option>
+        <option value="Autre">Autre</option>
+      </select>
+    </div>
+    <div class="field"><label>Montant (€)</label><input id="fm-montant" type="number" min="0" step="0.01" placeholder="0.00"></div>
+    <div class="field"><label>Infos</label><input id="fm-infos" type="text" placeholder="Description…"></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-ghost" onclick="closeModal('modal-frais-manual')">Annuler</button>
+      <button class="mbtn mbtn-primary" onclick="confirmFraisManual()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL : FRAIS EDIT ═════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-frais-edit">
+  <div class="modal">
+    <h2>Modifier la dépense</h2>
+    <div class="field"><label>Date</label><input id="fe-date" type="date"></div>
+    <div class="field"><label>Catégorie</label>
+      <select id="fe-cat">
+        <option value="Soins">Soins</option>
+        <option value="Alimentation">Alimentation</option>
+        <option value="Pension">Pension</option>
+        <option value="Matériel">Matériel</option>
+        <option value="Autre">Autre</option>
+      </select>
+    </div>
+    <div class="field"><label>Montant (€)</label><input id="fe-montant" type="number" min="0" step="0.01"></div>
+    <div class="field"><label>Infos</label><input id="fe-infos" type="text"></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-ghost" onclick="closeModal('modal-frais-edit')">Annuler</button>
+      <button class="mbtn mbtn-primary" onclick="saveFraisEdit()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL : EXPORT ══════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-export">
+  <div class="modal">
+    <h2>💾 Exporter les données</h2>
+    <p style="font-size:13px;color:var(--muted);line-height:1.5;">Copie ce texte et sauvegarde-le dans un fichier <code>.json</code>. Tu pourras le réimporter via "Save → Importer une sauvegarde".</p>
+    <div style="position:relative;">
+      <textarea id="export-text" readonly style="min-height:160px;font-family:monospace;font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;width:100%;resize:none;-webkit-user-select:all;user-select:all;" onclick="this.select()"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-ghost" onclick="closeModal('modal-export')">Fermer</button>
+      <button class="mbtn mbtn-primary" onclick="copyExport()">📋 Copier tout</button>
+    </div>
+    <p id="copy-confirm" style="font-size:12px;color:var(--accent2);text-align:center;display:none;margin-top:4px;">✓ Copié dans le presse-papiers !</p>
   </div>
 </div>
 
@@ -451,8 +607,7 @@ const LS_KEY='tracegps_v3';
 let traces=[], selectedIdx=null;
 let chartSpeed=null, chartMonthly=null;
 let pendingPoints=null, pendingStats=null, pendingFile=null;
-let mapVisible=true;
-
+let mapVisible=false;
 
 // ── SETTINGS MENU ──────────────────────────────────────────────────────────
 const LS_CFG='hermes_cfg_v1';
@@ -515,11 +670,6 @@ function applyAllureConfig(){
   // Refresh detail modal if open
   if(detailIdx!==null&&document.getElementById('modal-detail').classList.contains('open'))openDetail(detailIdx);
 }
-function saveFreqConfig(){
-  const v=parseInt(document.getElementById('cfg-freq').value)||60;
-  liveFreqSec=v;
-  try{const cfg=JSON.parse(localStorage.getItem(LS_CFG)||'{}');cfg.freq=v;localStorage.setItem(LS_CFG,JSON.stringify(cfg));}catch(e){}
-}
 function resetAllureConfig(){
   document.getElementById('cfg-walk').value=ALLURE_DEFAULTS.walk;
   document.getElementById('cfg-trot').value=ALLURE_DEFAULTS.trot;
@@ -534,14 +684,14 @@ function renderMapLegend(){
 // ── MAP ────────────────────────────────────────────────────────────────────
 const map=L.map('map',{zoomControl:true}).setView([46.5,2.5],5);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'©OpenStreetMap ©CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
-setTimeout(()=>{loadAllureConfig();renderMapLegend();loadStorage();renderAll();},120);
+setTimeout(()=>{loadAllureConfig();renderMapLegend();loadStorage();renderAll();loadFrais();},120);
 
-function toggleMap(){
+function toggleMap(cb){
   mapVisible=!mapVisible;
   document.getElementById('map').classList.toggle('collapsed',!mapVisible);
   document.getElementById('map-toggle-lbl').textContent=mapVisible?'Masquer ▲':'Afficher ▼';
   document.getElementById('map-legend').style.display=mapVisible?'flex':'none';
-  if(mapVisible)setTimeout(()=>map.invalidateSize(),260);
+  if(mapVisible)setTimeout(()=>{map.invalidateSize();if(cb)cb();},280);
 }
 
 // ── HELPERS ────────────────────────────────────────────────────────────────
@@ -589,9 +739,12 @@ function computeStats(pts){
 }
 function buildLayers(pts,stats,color){
   const layers=L.layerGroup().addTo(map);
+  const hasSpd=stats.speeds&&stats.speeds.some(s=>s>0.5);
   for(let i=1;i<pts.length;i++){
     const spd=stats.speeds[i-1]??0;
-    const al=allureOf(spd);if(al)L.polyline([[pts[i-1].lat,pts[i-1].lon],[pts[i].lat,pts[i].lon]],{color:al.color,weight:4,opacity:.9}).addTo(layers);
+    const al=allureOf(spd);
+    const segColor=al?al.color:(hasSpd?color:'#4f8ef7');
+    L.polyline([[pts[i-1].lat,pts[i-1].lon],[pts[i].lat,pts[i].lon]],{color:segColor,weight:4,opacity:.9}).addTo(layers);
   }
   L.marker([pts[0].lat,pts[0].lon],{icon:L.divIcon({html:`<div style="width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid ${color};box-shadow:0 0 6px #0008"></div>`,iconSize:[12,12],iconAnchor:[6,6],className:''})}).addTo(layers);
   return layers;
@@ -625,7 +778,7 @@ function loadStorage(){
       }
     });
     const gpsPts=traces.filter(t=>t.points).flatMap(t=>t.points.map(p=>[p.lat,p.lon]));
-    if(gpsPts.length)map.fitBounds(L.latLngBounds(gpsPts),{padding:[30,30]});
+    if(gpsPts.length){map.fitBounds(L.latLngBounds(gpsPts),{padding:[30,30]});}
     updateStorageInd();
   }catch(e){console.warn(e);}
 }
@@ -646,13 +799,15 @@ function selectTrace(i){
   selectedIdx=i;
   if(traces[i]?.points){
     const b=L.latLngBounds(traces[i].points.map(p=>[p.lat,p.lon]));
-    map.fitBounds(b,{padding:[30,30]});
-    if(!mapVisible)toggleMap();
+    if(!mapVisible)toggleMap(()=>map.fitBounds(b,{padding:[40,40]}));
+    else map.fitBounds(b,{padding:[40,40]});
   }
   renderSynthese();
 }
 function delTrace(i){
-  if(!confirm(`Supprimer "${traces[i].name}" ?`))return;
+  const t=traces[i];
+  const label=t.meta.date?`la sortie du ${fmtDate(t.meta.date)}`:`cette sortie`;
+  if(!confirm(`Voulez-vous supprimer ${label} ?`))return;
   if(traces[i].layers)traces[i].layers.remove();
   traces.splice(i,1);
   selectedIdx=traces.length?Math.max(0,Math.min(i,traces.length-1)):null;
@@ -660,6 +815,14 @@ function delTrace(i){
 }
 
 // ── HIST DROPDOWN ──────────────────────────────────────────────────────────
+
+function toggleSaveMenu(e){
+  e.stopPropagation();
+  const m=document.getElementById('save-menu');
+  m.classList.toggle('open');
+  if(m.classList.contains('open'))setTimeout(()=>document.addEventListener('click',()=>m.classList.remove('open'),{once:true}),0);
+}
+function closeSaveMenu(){document.getElementById('save-menu').classList.remove('open');}
 function toggleHistMenu(e){
   e.stopPropagation();
   const m=document.getElementById('hist-menu');
@@ -689,29 +852,85 @@ function readGpx(file){
   const r=new FileReader();
   r.onload=ev=>{
     const doc=new DOMParser().parseFromString(ev.target.result,'application/xml');
-    const pts=Array.from(doc.querySelectorAll('trkpt'));
+    // Support both trkpt and wpt
+    let pts=Array.from(doc.querySelectorAll('trkpt'));
+    if(!pts.length)pts=Array.from(doc.querySelectorAll('wpt'));
     if(!pts.length){alert('Aucun point trouvé.');return;}
-    pendingPoints=pts.map(pt=>({lat:+pt.getAttribute('lat'),lon:+pt.getAttribute('lon'),ele:+(pt.querySelector('ele')?.textContent||0),time:pt.querySelector('time')?new Date(pt.querySelector('time').textContent):null}));
-    pendingStats=computeStats(pendingPoints);pendingFile=file;
-    const d=pendingPoints[0].time;
-    document.getElementById('gm-date').value=d?d.toISOString().slice(0,10):'';
+    pendingPoints=pts.map(pt=>({
+      lat:+pt.getAttribute('lat'),lon:+pt.getAttribute('lon'),
+      ele:+(pt.querySelector('ele')?.textContent||0),
+      time:pt.querySelector('time')?new Date(pt.querySelector('time').textContent):null
+    }));
+    pendingFile=file;
+    const hasTimestamps=pendingPoints.some(p=>p.time);
+    const d=hasTimestamps?pendingPoints.find(p=>p.time)?.time:null;
+    const today=new Date().toISOString().slice(0,10);
+    document.getElementById('gm-date').value=d?d.toISOString().slice(0,10):today;
     document.getElementById('gm-name').value=file.name.replace('.gpx','');
-    document.getElementById('gm-type').value='cheval';document.getElementById('gm-comment').value='';
+    document.getElementById('gm-type').value='cheval';
+    document.getElementById('gm-comment').value='';
+    document.getElementById('gm-dur').value='';
+    // Show duration field only if no timestamps
+    document.getElementById('gm-dur-field').style.display=hasTimestamps?'none':'flex';
     openModal('modal-gpx');
   };
   r.readAsText(file);
 }
+function filterOutliers(pts){
+  if(pts.length<4)return pts;
+  // Compute all distances between consecutive points
+  const dists=[];
+  for(let i=1;i<pts.length;i++) dists.push(haversine(pts[i-1],pts[i]));
+  // Compute median distance
+  const sorted=[...dists].sort((a,b)=>a-b);
+  const median=sorted[Math.floor(sorted.length/2)];
+  // A point is aberrant if it's more than 10x the median distance from its neighbor
+  const threshold=Math.max(median*10, 200); // at least 200m
+  const kept=[pts[0]];
+  let removed=0;
+  for(let i=1;i<pts.length;i++){
+    const d=haversine(kept[kept.length-1],pts[i]);
+    if(d>threshold){ removed++; continue; }
+    kept.push(pts[i]);
+  }
+  if(removed>0)console.log(`Filtrage: ${removed} point(s) aberrant(s) supprimé(s) (seuil: ${threshold.toFixed(0)}m, médiane: ${median.toFixed(0)}m)`);
+  return kept;
+}
+
 function confirmGpx(){
   if(!pendingPoints)return;
+  let pts=pendingPoints;
+
+  // Filter outlier points before anything else
+  const before=pts.length;
+  pts=filterOutliers(pts);
+  const removed=before-pts.length;
+
+  const hasTimestamps=pts.some(p=>p.time);
+  // If no timestamps, generate them from duration input
+  if(!hasTimestamps){
+    const durRaw=document.getElementById('gm-dur').value;
+    const durSec=parseDur(durRaw);
+    if(durSec&&durSec>0){
+      const startDate=document.getElementById('gm-date').value;
+      const startTime=startDate?new Date(startDate+'T08:00:00'):new Date();
+      const intervalMs=(durSec/(pts.length-1))*1000;
+      pts=pts.map((p,i)=>({...p,time:new Date(startTime.getTime()+i*intervalMs)}));
+    }
+  }
+  pendingStats=computeStats(pts);
   const meta={date:document.getElementById('gm-date').value,type:document.getElementById('gm-type').value,comment:document.getElementById('gm-comment').value.trim()};
   const name=document.getElementById('gm-name').value.trim()||pendingFile.name.replace('.gpx','');
   closeModal('modal-gpx');
   const color=COLORS[traces.length%COLORS.length];
-  traces.push({source:'gpx',name,color,meta,points:pendingPoints,layers:buildLayers(pendingPoints,pendingStats,color),stats:pendingStats});
+  traces.push({source:'gpx',name,color,meta,points:pts,layers:buildLayers(pts,pendingStats,color),stats:pendingStats});
   selectedIdx=traces.length-1;
-  map.fitBounds(L.latLngBounds(pendingPoints.map(p=>[p.lat,p.lon])),{padding:[30,30]});
+  const _bounds=L.latLngBounds(pts.map(p=>[p.lat,p.lon]));
+  if(!mapVisible)toggleMap(()=>map.fitBounds(_bounds,{padding:[40,40]}));
+  else map.fitBounds(_bounds,{padding:[40,40]});
   pendingPoints=pendingStats=pendingFile=null;
   saveStorage();renderAll();
+  if(removed>0)setTimeout(()=>alert(`ℹ️ ${removed} point${removed>1?'s':''} aberrant${removed>1?'s':''} supprimé${removed>1?'s':''} automatiquement.`),300);
 }
 
 // ── TEXT ENTRY ─────────────────────────────────────────────────────────────
@@ -729,23 +948,6 @@ function confirmText(){
 }
 
 // ── LIVE RECORDING ─────────────────────────────────────────────────────────
-let liveOn=false,liveWatch=null,livePts=[],liveStart=null,liveLayer=null,liveMarker=null,liveAccCircle=null,liveTicker=null,liveLast=null,liveDist=0;
-let liveFreqSec=5, liveLastRecorded=null;
-function toggleRecording(){if(!liveOn)startLive();else stopLive();}
-function startLive(){
-  if(!navigator.geolocation){
-    alert('La géolocalisation n\'est pas disponible sur cet appareil ou navigateur.');return;
-  }
-  document.getElementById('live-label').textContent='⏳ Attente GPS…';
-  document.getElementById('btn-live').disabled=true;
-  // First call: get permission AND first position
-  navigator.geolocation.getCurrentPosition(
-    pos=>{_doStartLive(); onGps(pos);},
-    e=>_gpsPermErr(e),
-    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
-  );
-}
-let liveGpsCalls=0, liveWatchFallback=null;
 function _doStartLive(){
   document.getElementById('btn-live').disabled=false;
   livePts=[];liveDist=0;liveLast=null;liveLastRecorded=null;liveStart=Date.now();liveGpsCalls=0;
@@ -768,114 +970,9 @@ function _doStartLive(){
   document.querySelector('.map-section').scrollIntoView({behavior:'smooth'});
   liveTicker=setInterval(()=>{const s=Math.floor((Date.now()-liveStart)/1000);document.getElementById('hud-dur').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;},1000);
 }
-function gpsErrSilent(e){
-  liveGpsCalls++;
-  if(document.getElementById('hud-calls'))document.getElementById('hud-calls').textContent=liveGpsCalls+'⚠';
-  console.warn('GPS error:',e.code,e.message);
-}
-function _gpsPermErr(e){
-  document.getElementById('btn-live').disabled=false;
-  document.getElementById('live-label').textContent='⏺ Record';
-  document.getElementById('btn-live').className='btn-live';
-  const msgs={
-    1:'Localisation refusée.\n\nSur Android : Paramètres → Applications → Chrome → Autorisations → Localisation → Autoriser.',
-    2:'Signal GPS indisponible. Essaie en extérieur.',
-    3:'Délai GPS dépassé. Vérifie que la localisation est activée dans les paramètres Android.'
-  };
-  alert(msgs[e.code]||'Erreur GPS inconnue (code '+e.code+').');
-}
-function onGps(pos){
-  liveGpsCalls++;
-  document.getElementById('hud-calls').textContent=liveGpsCalls;
-  const{latitude:lat,longitude:lon,altitude,speed,accuracy}=pos.coords;
-  const ele=altitude||0,time=new Date(pos.timestamp);
-  const pt={lat,lon,ele,time};
-  const now=Date.now();
-  const shouldRecord=!liveLastRecorded||(now-liveLastRecorded)>=liveFreqSec*1000;
-
-  // Always update marker + circle
-  if(!liveMarker){
-    const icon=L.divIcon({html:`<div style="width:15px;height:15px;border-radius:50%;background:var(--danger);border:3px solid #fff;box-shadow:0 0 0 4px rgba(247,100,149,.3)"></div>`,iconSize:[15,15],iconAnchor:[7,7],className:''});
-    liveMarker=L.marker([lat,lon],{icon,zIndexOffset:1000}).addTo(map);
-    liveAccCircle=L.circle([lat,lon],{radius:accuracy||10,color:'#f76495',weight:1,opacity:.5,fillColor:'#f76495',fillOpacity:.08}).addTo(map);
-    map.setView([lat,lon],15);
-  } else {
-    liveMarker.setLatLng([lat,lon]);
-    liveAccCircle.setLatLng([lat,lon]);
-    if(accuracy)liveAccCircle.setRadius(accuracy);
-    if(mapVisible)map.panTo([lat,lon],{animate:true,duration:0.5});
-  }
-
-  // Update speed HUD from latest position
-  if(liveLast){
-    const dt=(time-liveLast.time)/1000;
-    const kmh=dt>0?haversine(liveLast,pt)/dt*3.6:0;
-    document.getElementById('hud-spd').textContent=(speed!=null?(speed*3.6).toFixed(1):kmh.toFixed(1))+' km/h';
-  }
-
-  // Record point at configured interval only
-  if(shouldRecord){
-    if(liveLast){
-      const d=haversine(liveLast,pt);liveDist+=d;
-      const dt=(time-liveLast.time)/1000,kmh=dt>0?(d/dt)*3.6:0;
-      const al=allureOf(kmh);
-      if(al)L.polyline([[liveLast.lat,liveLast.lon],[lat,lon]],{color:al.color,weight:4,opacity:.9}).addTo(liveLayer);
-      document.getElementById('hud-dist').textContent=(liveDist/1000).toFixed(2)+' km';
-    }
-    livePts.push(pt);
-    liveLast=pt;
-    liveLastRecorded=now;
-    document.getElementById('hud-pts').textContent=livePts.length;
-  }
-}
-function gpsErr(e){
-  const msgs={
-    1:'Localisation refusée. Va dans Paramètres Android → Applications → Chrome → Autorisations → Localisation.',
-    2:'Signal GPS perdu. Essaie de te rapprocher d\'une fenêtre ou d\'un espace ouvert.',
-    3:'Délai GPS dépassé. Le signal est peut-être faible.'
-  };
-  console.warn('GPS watchPosition error:', e.code, e.message);
-  // Only show alert for permission error, others just log
-  if(e.code===1){ stopLive(); alert(msgs[1]); }
-}
-function stopLive(){
-  if(liveWatch!=null){clearInterval(liveWatch);liveWatch=null;}
-  if(liveWatchFallback!=null){clearInterval(liveWatchFallback);liveWatchFallback=null;}
-  clearInterval(liveTicker);liveOn=false;
-  document.getElementById('btn-live').className='btn-live';
-  document.getElementById('live-label').textContent='⏺ Record';
-  document.getElementById('rec-dot').classList.remove('on');
-  if(livePts.length<2){alert('Pas assez de points GPS.');resetLiveUI();return;}
-  const now=new Date();
-  document.getElementById('lm-name').value=`Sortie du ${now.toLocaleDateString('fr-FR')}`;
-  document.getElementById('lm-type').value='cheval';document.getElementById('lm-comment').value='';
-  openModal('modal-live');
-}
-function saveLive(){
-  const meta={date:new Date(livePts[0].time).toISOString().slice(0,10),type:document.getElementById('lm-type').value,comment:document.getElementById('lm-comment').value.trim()};
-  const name=document.getElementById('lm-name').value.trim()||'Sortie live';
-  closeModal('modal-live');
-  const stats=computeStats(livePts);const color=COLORS[traces.length%COLORS.length];
-  if(liveMarker&&liveMarker.remove)liveMarker.remove();
-  if(liveAccCircle&&liveAccCircle.remove)liveAccCircle.remove();liveAccCircle=null;
-  traces.push({source:'live',name,color,meta,points:livePts,layers:liveLayer,stats});
-  selectedIdx=traces.length-1;liveLayer=null;
-  saveStorage();renderAll();resetLiveUI();
-}
-function discardLive(){
-  closeModal('modal-live');
-  if(liveLayer){liveLayer.remove();liveLayer=null;}
-  if(liveMarker&&liveMarker.remove)liveMarker.remove();
-  if(liveAccCircle&&liveAccCircle.remove)liveAccCircle.remove();liveAccCircle=null;
-  resetLiveUI();
-}
-function resetLiveUI(){
-  document.getElementById('live-hud').classList.remove('on');
-  livePts=[];liveDist=0;liveLast=null;liveStart=null;
-}
 
 // ── RENDER ALL ─────────────────────────────────────────────────────────────
-function renderAll(){renderList();renderGlobalTab();renderSynthese();}
+function renderAll(){if(typeof synthSelection!=="undefined")synthSelection.clear();renderList();renderGlobalTab();renderSynthese();}
 
 // ── DETAIL MODAL ───────────────────────────────────────────────────────────
 let detailIdx=null, detailChart=null;
@@ -888,12 +985,15 @@ function openDetail(i){
   document.getElementById('dm-comment').value=t.meta.comment||'';
   // stats
   const sd=document.getElementById('dm-stats');
+  // Populate duration field
   if(isText){
     const d=t.textData;
-    sd.innerHTML=statCard('Distance',d.distKm.toFixed(2),'km','c-accent')+statCard('Durée',fmtDur(d.durSec))+statCard('Vitesse moy.',d.avgSpeed?d.avgSpeed.toFixed(1):'—','km/h','c-green');
+    document.getElementById('dm-dur').value=d.durSec?fmtDur(d.durSec):'';
+    sd.innerHTML=statCard('Distance',d.distKm.toFixed(2),'km','c-accent')+statCard('Vitesse moy.',d.avgSpeed?d.avgSpeed.toFixed(1):'—','km/h','c-green');
   } else {
     const s=t.stats;
-    sd.innerHTML=statCard('Distance',(s.dist/1000).toFixed(2),'km','c-accent')+statCard('Durée',fmtDur(s.duration))+statCard('Vitesse moy.',s.avgSpeed?s.avgSpeed.toFixed(1):'—','km/h','c-green')+statCard('Vitesse max',s.maxSpeed?s.maxSpeed.toFixed(1):'—','km/h','c-warn')+statCard('Dénivelé +',Math.round(s.asc),'m')+statCard('Dénivelé −',Math.round(s.desc),'m');
+    document.getElementById('dm-dur').value=s.duration?fmtDur(s.duration):'';
+    sd.innerHTML=statCard('Distance',(s.dist/1000).toFixed(2),'km','c-accent')+statCard('Vitesse moy.',s.avgSpeed?s.avgSpeed.toFixed(1):'—','km/h','c-green')+statCard('Vitesse max',s.maxSpeed?s.maxSpeed.toFixed(1):'—','km/h','c-warn');
   }
   // allure
   const aw=document.getElementById('dm-allure-wrap');
@@ -931,6 +1031,26 @@ function saveDetail(){
   traces[detailIdx].meta.date=document.getElementById('dm-date').value;
   traces[detailIdx].meta.type=document.getElementById('dm-type').value;
   traces[detailIdx].meta.comment=document.getElementById('dm-comment').value.trim();
+  // Save duration edit
+  const durRaw=document.getElementById('dm-dur').value.trim();
+  const durSec=parseDur(durRaw);
+  const t=traces[detailIdx];
+  if(durSec&&durSec>0){
+    if(t.source==='text'){
+      t.textData.durSec=durSec;
+      t.textData.avgSpeed=t.textData.distKm/(durSec/3600);
+    } else if(t.points&&t.stats){
+      // Regenerate timestamps from new duration
+      const pts=t.points;
+      const start=pts[0].time||new Date(t.meta.date+'T08:00:00');
+      const intervalMs=(durSec/(pts.length-1))*1000;
+      t.points=pts.map((p,i)=>({...p,time:new Date(start.getTime()+i*intervalMs)}));
+      t.stats=computeStats(t.points);
+      // Rebuild layers
+      t.layers.remove();
+      t.layers=buildLayers(t.points,t.stats,t.color);
+    }
+  }
   closeModal('modal-detail');
   saveStorage();renderAll();
 }
@@ -961,9 +1081,15 @@ function renderGlobalTab(){
   const trs=window._gYear==='all'?traces:traces.filter(t=>t.meta.date?.startsWith(window._gYear));
 
   const totalDist=trs.reduce((a,t)=>a+(t.points?t.stats.dist:t.textData.distKm*1000),0);
-  const totalDur=trs.reduce((a,t)=>a+(t.points?(t.stats.duration||0):(t.textData.durSec||0)),0);
+  // Duration: GPS with real duration + text entries with durSec
+  // For avg speed: only count traces that have both distance AND duration
   const allMax=Math.max(0,...trs.filter(t=>t.points&&t.stats.maxSpeed).map(t=>t.stats.maxSpeed));
-  const avgSpd=totalDur>0?(totalDist/totalDur)*3.6:0;
+  let totalDur=0,distForAvg=0;
+  trs.forEach(t=>{
+    if(t.points&&t.stats.duration){totalDur+=t.stats.duration;distForAvg+=t.stats.dist;}
+    else if(!t.points&&t.textData.durSec){totalDur+=t.textData.durSec;distForAvg+=t.textData.distKm*1000;}
+  });
+  const avgSpd=totalDur>0?(distForAvg/totalDur)*3.6:0;
   document.getElementById('g-grid').innerHTML=
     statCard('Distance totale',(totalDist/1000).toFixed(1),'km','c-accent')+
     statCard('Durée totale',fmtDur(totalDur))+
@@ -1009,7 +1135,6 @@ function renderGlobalTab(){
   renderMonthlyChart();
 
 }
-
 
 const MONTH_NAMES=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const MONTH_SHORT=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
@@ -1155,7 +1280,6 @@ function renderMonthlyChart(){
 
 // kept as no-op so renderGlobalTab doesn't break
 
-
 function renderSynthese(){
   const noEl=document.getElementById('no-synth'),cont=document.getElementById('synth-content');
   if(!traces.length){noEl.style.display='flex';cont.style.display='none';return;}
@@ -1167,8 +1291,18 @@ function renderSynthese(){
   const fy=ysel.value;
   const rows=[...traces].map((t,i)=>({t,i}))
     .filter(({t})=>fy==='all'||t.meta.date?.startsWith(fy))
-    .sort((a,b)=>(b.t.meta.date||'').localeCompare(a.t.meta.date||''));
+    .sort((a,b)=>{
+      const va=synthSortValue(a.t),vb=synthSortValue(b.t);
+      if(typeof va==='string')return synthSort.dir*va.localeCompare(vb);
+      return synthSort.dir*(va-vb);
+    });
+  updateSortIcons();
   const tc='#7a82a0';
+  // Update select-all checkbox
+  const selAll=document.getElementById('sel-all');
+  if(selAll){const vis=[...document.querySelectorAll('#synth-body tr')].map(tr=>parseInt(tr.id.replace(/synth-row-/,''))).filter(n=>!isNaN(n));const allC=vis.length>0&&vis.every(i=>synthSelection.has(i));selAll.checked=allC;selAll.indeterminate=!allC&&vis.some(i=>synthSelection.has(i));}
+  updateSelBar();
+
   document.getElementById('synth-body').innerHTML=rows.map(({t,i})=>{
     const iT=t.source==='text';
     const dist=iT?t.textData.distKm.toFixed(1):(t.stats.dist/1000).toFixed(1);
@@ -1177,21 +1311,94 @@ function renderSynthese(){
     const max=iT?'—':(t.stats.maxSpeed?t.stats.maxSpeed.toFixed(1):'—');
     const hasMap=!!t.points;
     const isSelected=i===selectedIdx;
+    const isChecked=synthSelection.has(i);
     return`<tr id="synth-row-${i}" style="${isSelected?'background:rgba(79,142,247,.12);':''}" onclick="synthSelectTrace(${i})">
-      <td><div style="width:9px;height:9px;border-radius:50%;background:${iT?'transparent':t.color};${iT?`border:2px solid ${t.color};`:''}margin:auto;"></div></td>
+      <td onclick="event.stopPropagation()"><input type="checkbox" ${isChecked?'checked':''} onchange="toggleRowSel(${i},this.checked)" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);"></td>
       <td style="white-space:nowrap;">${fmtDate(t.meta.date)}</td>
-      <td>${typeBadge(t.meta.type)}</td>
+      <td style="text-align:center;"><input type="checkbox" ${t.meta.type==='cheval'?'checked':''} disabled style="width:16px;height:16px;accent-color:var(--accent);cursor:default;"></td>
       <td style="font-weight:600;color:var(--accent);">${dist} <span style="color:var(--muted);font-size:11px;">km</span></td>
       <td>${dur}</td>
       <td>${avg}${avg!=='—'?'<span style="color:var(--muted);font-size:11px;"> km/h</span>':''}</td>
       <td>${max}${max!=='—'?'<span style="color:var(--muted);font-size:11px;"> km/h</span>':''}</td>
       <td style="white-space:nowrap;">
-        ${hasMap?`<button class="action-btn map-btn" title="Voir sur la carte" onclick="event.stopPropagation();synthShowMap(${i})">🗺</button>`:'<span style="opacity:.25;padding:0 4px;">🗺</span>'}
-        <button class="action-btn edit-btn" title="Modifier" onclick="event.stopPropagation();openDetail(${i})">✏️</button>
-        <button class="action-btn del-btn" title="Supprimer" onclick="event.stopPropagation();delTrace(${i})">🗑</button>
+        ${hasMap?`<button class="action-btn" title="Voir sur la carte" onclick="event.stopPropagation();synthShowMap(${i})">🗺</button>`:'<span style="opacity:.25;padding:0 4px;">🗺</span>'}
+        <button class="action-btn" title="Modifier" onclick="event.stopPropagation();openDetail(${i})">✏️</button>
+        <button class="action-btn" title="Supprimer" onclick="event.stopPropagation();delTrace(${i})">🗑</button>
       </td>
     </tr>`;
   }).join('');
+}
+
+
+// ── SORT ───────────────────────────────────────────────────────────────────
+let synthSort={col:'date',dir:-1}; // -1=desc, 1=asc
+
+function sortSynth(col){
+  if(synthSort.col===col)synthSort.dir*=-1;
+  else{synthSort.col=col;synthSort.dir=col==='date'?-1:1;}
+  renderSynthese();
+}
+
+function synthSortValue(t){
+  const iT=t.source==='text';
+  switch(synthSort.col){
+    case 'date': return t.meta.date||'';
+    case 'cheval': return t.meta.type==='cheval'?1:0;
+    case 'dist': return iT?t.textData.distKm:(t.stats.dist/1000);
+    case 'dur': return iT?(t.textData.durSec||0):(t.stats.duration||0);
+    case 'avg': return iT?(t.textData.avgSpeed||0):(t.stats.avgSpeed||0);
+    case 'max': return t.stats?.maxSpeed||0;
+    default: return '';
+  }
+}
+
+function updateSortIcons(){
+  ['date','cheval','dist','dur','avg','max'].forEach(col=>{
+    const el=document.getElementById('sort-'+col);
+    if(!el)return;
+    if(synthSort.col===col)el.textContent=synthSort.dir===-1?' ↓':' ↑';
+    else el.textContent='';
+  });
+}
+// ── SELECTION ──────────────────────────────────────────────────────────────
+let synthSelection=new Set();
+function toggleRowSel(i,checked){
+  if(checked)synthSelection.add(i);else synthSelection.delete(i);
+  updateSelBar();
+  const vis=[...document.querySelectorAll('#synth-body tr')].map(tr=>parseInt(tr.id.replace(/synth-row-/,''))).filter(n=>!isNaN(n));
+  const selAll=document.getElementById('sel-all');
+  if(selAll){const allC=vis.length>0&&vis.every(i=>synthSelection.has(i));selAll.checked=allC;selAll.indeterminate=!allC&&vis.some(i=>synthSelection.has(i));}
+}
+function toggleSelectAll(checked){
+  const vis=[...document.querySelectorAll('#synth-body tr')].map(tr=>parseInt(tr.id.replace(/synth-row-/,''))).filter(n=>!isNaN(n));
+  vis.forEach(i=>{if(checked)synthSelection.add(i);else synthSelection.delete(i);});
+  renderSynthese();
+}
+function clearSelection(){synthSelection.clear();renderSynthese();}
+function updateSelBar(){
+  const bar=document.getElementById('synth-sel-bar'),cnt=document.getElementById('sel-count');
+  if(!bar)return;
+  if(synthSelection.size>0){bar.style.display='table-row';cnt.textContent=`${synthSelection.size} sélectionnée${synthSelection.size>1?'s':''}`;}
+  else bar.style.display='none';
+}
+function toggleSelectionMap(){
+  const hasMaps=[...synthSelection].filter(i=>traces[i]?.points);
+  if(!hasMaps.length){alert("Aucune trace sélectionnée n'a de tracé cartographique.");return;}
+  const allVisible=hasMaps.every(i=>map.hasLayer(traces[i].layers));
+  hasMaps.forEach(i=>{
+    if(!traces[i].layers)return;
+    if(allVisible)traces[i].layers.remove();
+    else if(!map.hasLayer(traces[i].layers))traces[i].layers.addTo(map);
+  });
+}
+function deleteSelection(){
+  if(!synthSelection.size)return;
+  const n=synthSelection.size;
+  if(!confirm(`Supprimer ${n} trace${n>1?'s':''} ? Cette action est irréversible.`))return;
+  [...synthSelection].sort((a,b)=>b-a).forEach(i=>{if(traces[i]?.layers)traces[i].layers.remove();traces.splice(i,1);});
+  synthSelection.clear();
+  selectedIdx=traces.length?0:null;
+  saveStorage();renderAll();
 }
 function synthSelectTrace(i){
   selectedIdx=i;
@@ -1200,17 +1407,22 @@ function synthSelectTrace(i){
 function synthShowMap(i){
   if(!traces[i]?.points)return;
   selectedIdx=i;
-  // Scroll up to map and show it
-  if(!mapVisible)toggleMap();
   const b=L.latLngBounds(traces[i].points.map(p=>[p.lat,p.lon]));
-  map.fitBounds(b,{padding:[30,30]});
-  document.querySelector('.map-section').scrollIntoView({behavior:'smooth'});
+  if(!mapVisible){
+    toggleMap(()=>{
+      map.fitBounds(b,{padding:[40,40]});
+      document.querySelector('.map-section').scrollIntoView({behavior:'smooth'});
+    });
+  } else {
+    map.fitBounds(b,{padding:[40,40]});
+    document.querySelector('.map-section').scrollIntoView({behavior:'smooth'});
+  }
   renderSynthese();
 }
 
 // ── PASTE IMPORT ────────────────────────────────────────────────────────────
 function openPasteModal(){
-  document.getElementById('hist-menu').classList.remove('open');
+  document.getElementById('hist-menu')?.classList.remove('open');
   document.getElementById('paste-input').value='';
   document.getElementById('paste-preview').textContent='';
   openModal('modal-paste');
@@ -1278,11 +1490,12 @@ function confirmPaste(){
 }
 // ── EXPORT / IMPORT ALL ────────────────────────────────────────────────────
 function exportAll(){
-  document.getElementById('hist-menu').classList.remove('open');
+  closeSaveMenu();
   try{
     const raw=localStorage.getItem(LS_KEY)||'[]';
     const cfg=localStorage.getItem(LS_CFG)||'{}';
-    const payload=JSON.stringify({version:1,data:JSON.parse(raw),config:JSON.parse(cfg)},null,2);
+    const fraisRaw=localStorage.getItem(LS_FRAIS)||'[]';
+    const payload=JSON.stringify({version:1,data:JSON.parse(raw),config:JSON.parse(cfg),frais:JSON.parse(fraisRaw)},null,2);
     document.getElementById('export-text').value=payload;
     document.getElementById('copy-confirm').style.display='none';
     openModal('modal-export');
@@ -1314,7 +1527,7 @@ function copyExport(){
   }
 }
 function importAll(e){
-  document.getElementById('hist-menu').classList.remove('open');
+  closeSaveMenu();
   const file=e.target.files[0];e.target.value='';
   if(!file)return;
   const reader=new FileReader();
@@ -1341,9 +1554,14 @@ function importAll(e){
       }
       if(payload.config)localStorage.setItem(LS_CFG,JSON.stringify(payload.config));
       localStorage.setItem(LS_KEY,JSON.stringify(merged));
+      if(payload.frais&&Array.isArray(payload.frais)){
+        const ef=JSON.parse(localStorage.getItem(LS_FRAIS)||'[]');
+        const mf=choice?[...ef,...payload.frais.filter(f=>!ef.some(e=>e.date===f.date&&e.montant===f.montant&&e.cat===f.cat))]:payload.frais;
+        localStorage.setItem(LS_FRAIS,JSON.stringify(mf));
+      }
       traces.forEach(t=>{if(t.layers)t.layers.remove();});
       traces=[];
-      loadStorage();renderAll();loadAllureConfig();
+      loadStorage();renderAll();loadAllureConfig();loadFrais();
       alert(`✓ ${merged.length} trace${merged.length>1?'s':''} chargée${merged.length>1?'s':''}.`);
     }catch(err){alert('Erreur import : '+err.message);}
   };
@@ -1358,6 +1576,320 @@ function showTab(name,btn){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ══ PAGE NAVIGATION ═══════════════════════════════════════════════════════
+function showPage(name){
+  document.getElementById('page-sorties').style.display=name==='sorties'?'block':'none';
+  document.getElementById('page-frais').style.display=name==='frais'?'flex':'none';
+  document.getElementById('page-tab-sorties').style.background=name==='sorties'?'var(--accent)':'none';
+  document.getElementById('page-tab-sorties').style.color=name==='sorties'?'#fff':'var(--muted)';
+  document.getElementById('page-tab-frais').style.background=name==='frais'?'var(--accent)':'none';
+  document.getElementById('page-tab-frais').style.color=name==='frais'?'#fff':'var(--muted)';
+  // Settings and historique buttons visibility
+  // settings and hist buttons are now in page action bars, not topbar
+  if(name==='frais'){renderFraisAll();// ensure stats tab active
+    const statsTab=document.querySelector('#page-frais .stab');
+    const statsPanel=document.getElementById('ftab-stats');
+    if(statsTab&&statsPanel){document.querySelectorAll('#page-frais .stab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('#page-frais .tab-panel').forEach(p=>p.classList.remove('active'));statsTab.classList.add('active');statsPanel.classList.add('active');}}
+}
+
+// ══ FRAIS DATA ════════════════════════════════════════════════════════════
+const LS_FRAIS='hermes_frais_v1';
+const CAT_COLORS={
+  'Soins':'#f76495','Alimentation':'#38d9a9','Pension':'#4f8ef7',
+  'Matériel':'#f7a94f','Autre':'#94a3b8'
+};
+let frais=[]; // [{date,cat,montant,infos}]
+let fraisSort={col:'date',dir:-1};
+let chartFraisMonthly=null, chartFraisCat=null;
+let fraisEditIdx=null;
+let _fYear='all', _fCat='all';
+
+function saveFrais(){
+  try{localStorage.setItem(LS_FRAIS,JSON.stringify(frais));updateFraisInd();}catch(e){console.warn(e);}
+}
+function loadFrais(){
+  try{const r=localStorage.getItem(LS_FRAIS);if(r)frais=JSON.parse(r);updateFraisInd();}catch(e){}
+}
+function updateFraisInd(){
+  const el=document.getElementById('frais-storage-indicator');if(!el)return;
+  if(!frais.length){el.textContent='';return;}
+  try{const kb=Math.round(new Blob([localStorage.getItem(LS_FRAIS)||'']).size/1024);
+    el.textContent=`💾 ${frais.length} dépense${frais.length>1?'s':''} · ${kb} Ko`;}
+  catch(e){el.textContent=`💾 ${frais.length}`;}
+}
+function renderFraisAll(){loadFrais();renderFraisStats();renderFraisDetail();}
+
+// ── FRAIS PASTE IMPORT ────────────────────────────────────────────────────
+function openFraisPasteModal(){
+  document.getElementById('fpaste-input').value='';
+  document.getElementById('fpaste-preview').textContent='';
+  openModal('modal-frais-paste');
+  document.getElementById('fpaste-input').oninput=previewFraisPaste;
+}
+function previewFraisPaste(){
+  const rows=parseFraisPaste(document.getElementById('fpaste-input').value);
+  const ok=rows.filter(r=>r.ok).length,err=rows.filter(r=>!r.ok).length;
+  document.getElementById('fpaste-preview').innerHTML=ok?
+    `<span style="color:var(--accent2);">✓ ${ok} ligne${ok>1?'s':''} valide${ok>1?'s':''}</span>`+
+    (err?` <span style="color:var(--danger);margin-left:8px;">⚠ ${err} ignorée${err>1?'s':''}</span>`:''):'';
+}
+function parseFraisPaste(raw){
+  return raw.trim().split('\n').filter(l=>l.trim()).map(line=>{
+    const cols=line.split('\t').map(s=>s.trim());
+    try{
+      let dateStr='';
+      const year=cols[0]?.match(/^\d{4}$/)?cols[0]:null;
+      const month=cols[1]?.match(/^\d{1,2}$/)?cols[1].padStart(2,'0'):null;
+      const day=cols[2]?.match(/^\d{1,2}$/)?cols[2].padStart(2,'0'):null;
+      if(cols[2]?.match(/^\d{4}-\d{2}-\d{2}$/))dateStr=cols[2];
+      else if(cols[2]?.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)){const[d,m,y]=cols[2].split('/');dateStr=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}
+      else if(year&&month&&day)dateStr=`${year}-${month}-${day}`;
+      if(!dateStr)return{ok:false};
+      const infos=(cols[3]||'').trim();
+      const montant=parseFloat((cols[4]||'').replace(',','.'));
+      if(isNaN(montant)||montant<0)return{ok:false};
+      const cat=(cols[5]||'Autre').trim()||'Autre';
+      return{ok:true,dateStr,infos,montant,cat};
+    }catch(e){return{ok:false};}
+  });
+}
+function confirmFraisPaste(){
+  const rows=parseFraisPaste(document.getElementById('fpaste-input').value).filter(r=>r.ok);
+  if(!rows.length){alert('Aucune ligne valide trouvée.');return;}
+  closeModal('modal-frais-paste');
+  rows.forEach(r=>frais.push({date:r.dateStr,cat:r.cat,montant:r.montant,infos:r.infos}));
+  saveFrais();renderFraisAll();
+  setTimeout(()=>alert(`✓ ${rows.length} dépense${rows.length>1?'s':''} importée${rows.length>1?'s':''}.`),100);
+}
+
+// ── FRAIS MANUAL ──────────────────────────────────────────────────────────
+function openFraisManualModal(){
+  document.getElementById('fm-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('fm-cat').value='Soins';
+  document.getElementById('fm-montant').value='';
+  document.getElementById('fm-infos').value='';
+  openModal('modal-frais-manual');
+}
+function confirmFraisManual(){
+  const montant=parseFloat(document.getElementById('fm-montant').value);
+  if(isNaN(montant)||montant<0){alert('Montant invalide.');return;}
+  frais.push({date:document.getElementById('fm-date').value,cat:document.getElementById('fm-cat').value,montant,infos:document.getElementById('fm-infos').value.trim()});
+  closeModal('modal-frais-manual');saveFrais();renderFraisAll();
+}
+
+// ── FRAIS EDIT / DELETE ───────────────────────────────────────────────────
+function openFraisEdit(i){
+  fraisEditIdx=i;const f=frais[i];
+  document.getElementById('fe-date').value=f.date||'';
+  document.getElementById('fe-cat').value=f.cat||'Autre';
+  document.getElementById('fe-montant').value=f.montant||'';
+  document.getElementById('fe-infos').value=f.infos||'';
+  openModal('modal-frais-edit');
+}
+function saveFraisEdit(){
+  if(fraisEditIdx===null)return;
+  const montant=parseFloat(document.getElementById('fe-montant').value);
+  if(isNaN(montant)||montant<0){alert('Montant invalide.');return;}
+  frais[fraisEditIdx]={date:document.getElementById('fe-date').value,cat:document.getElementById('fe-cat').value,montant,infos:document.getElementById('fe-infos').value.trim()};
+  closeModal('modal-frais-edit');saveFrais();renderFraisAll();
+}
+function deleteFrais(i){
+  const f=frais[i];
+  const lbl=f.date?`la dépense du ${fmtDate(f.date)}`:'cette dépense';
+  if(!confirm(`Supprimer ${lbl} (${f.montant.toFixed(2)} €) ?`))return;
+  frais.splice(i,1);saveFrais();renderFraisAll();
+}
+
+// ── FRAIS STATS ───────────────────────────────────────────────────────────
+function renderFraisStats(){
+  const noEl=document.getElementById('fno-stats'),cont=document.getElementById('fstats-content');
+  if(!frais.length){noEl.style.display='flex';cont.style.display='none';return;}
+  noEl.style.display='none';cont.style.display='flex';
+
+  // Year pills
+  const curYear=new Date().getFullYear().toString();
+  const years=[...new Set(frais.map(f=>f.date?.slice(0,4)).filter(Boolean))].sort();
+  if(!_fYear||(!years.includes(_fYear)&&_fYear!=='all'))
+    _fYear=years.includes(curYear)?curYear:(years[years.length-1]||'all');
+
+  document.getElementById('f-year-pills').innerHTML=[...years,'all'].map(y=>{
+    const lbl=y==='all'?'Toutes':y,active=_fYear===y;
+    return`<button onclick="setFYear('${y}')" style="border:none;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;background:${active?'var(--accent)':'var(--surface2)'};color:${active?'#fff':'var(--muted)'};">${lbl}</button>`;
+  }).join('');
+
+  const trf=_fYear==='all'?frais:frais.filter(f=>f.date?.startsWith(_fYear));
+
+  // Global cards
+  const total=trf.reduce((a,f)=>a+f.montant,0);
+  const byCat={};
+  trf.forEach(f=>{byCat[f.cat]=(byCat[f.cat]||0)+f.montant;});
+  const topCat=Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+  const mois=[...new Set(trf.map(f=>f.date?.slice(0,7)).filter(Boolean))];
+  const avgMois=mois.length?total/mois.length:0;
+  document.getElementById('f-grid').innerHTML=
+    statCard('Total',total.toFixed(2),'€','c-accent')+
+    statCard('Dépenses',trf.length)+
+    statCard('Moy./mois',avgMois.toFixed(0),'€','c-green')+
+    (topCat?statCard('Catégorie principale',topCat[0],'','c-warn'):'');
+
+  // Cat filter pills
+  const cats=[...new Set(frais.map(f=>f.cat).filter(Boolean))].sort();
+  document.getElementById('f-cat-pills').innerHTML=['all',...cats].map(cat=>{
+    const lbl=cat==='all'?'Toutes':cat,active=_fCat===cat;
+    const bg=cat==='all'?'var(--surface2)':(CAT_COLORS[cat]||'#94a3b8');
+    return`<button onclick="setFCat('${cat}')" style="border:none;border-radius:16px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer;background:${active?bg:'var(--surface2)'};color:${active&&cat!=='all'?'#fff':'var(--muted)'};">${lbl}</button>`;
+  }).join('');
+
+  renderFraisMonthlyChart(trf);
+  renderFraisCatChart(trf);
+}
+
+function setFYear(y){_fYear=y;renderFraisStats();}
+function setFCat(cat){_fCat=cat;renderFraisStats();}
+
+function renderFraisMonthlyChart(trf){
+  const gc='rgba(46,54,80,.8)',tc='#7a82a0';
+  const moKeys=['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const cats=_fCat==='all'?[...new Set(trf.map(f=>f.cat).filter(Boolean))].sort():[_fCat];
+
+  // Canvas reset
+  const el=document.getElementById('chart-frais-monthly');
+  const parent=el.parentNode;const nc=document.createElement('canvas');
+  nc.id='chart-frais-monthly';nc.style.cssText=el.style.cssText;
+  parent.replaceChild(nc,el);
+
+  if(_fYear==='all'){
+    // Grouped bar chart: one group per month, one bar per year
+    document.getElementById('f-chart-title').textContent='Dépenses par mois — comparaison par année (€)';
+    const years=[...new Set(frais.map(f=>f.date?.slice(0,4)).filter(Boolean))].sort();
+    const datasets=years.map((yr,idx)=>{
+      const data=moKeys.map(mn=>{
+        const rows=frais.filter(f=>{
+          if(!f.date?.startsWith(yr))return false;
+          if(_fCat!=='all'&&f.cat!==_fCat)return false;
+          return f.date.slice(5,7)===mn;
+        });
+        return +rows.reduce((a,f)=>a+f.montant,0).toFixed(2);
+      });
+      const col=YEAR_PALETTE[idx%YEAR_PALETTE.length];
+      return{label:yr,data,backgroundColor:col,borderRadius:3,borderWidth:0};
+    });
+    chartFraisMonthly=new Chart(nc,{type:'bar',
+      data:{labels:MONTH_SHORT,datasets},
+      options:{responsive:true,maintainAspectRatio:false,events:['mousemove','mouseout','click','touchstart','touchmove'],
+        plugins:{legend:{labels:{color:tc,boxWidth:12}},tooltip:{mode:'index',intersect:false}},
+        scales:{x:{ticks:{color:tc,font:{size:12}},grid:{color:gc}},y:{ticks:{color:tc,callback:v=>v+'€'},grid:{color:gc},min:0}},
+        animation:{duration:300}
+      }
+    });
+  } else {
+    document.getElementById('f-chart-title').textContent=`Dépenses par mois ${_fYear} (€)`;
+    const mo={};moKeys.forEach(k=>{mo[k]={};cats.forEach(cat=>mo[k][cat]=0);});
+    trf.forEach(f=>{
+      if(!f.date)return;const mn=f.date.slice(5,7);
+      if(_fCat!=='all'&&f.cat!==_fCat)return;
+      if(mo[mn]!==undefined)mo[mn][f.cat]=(mo[mn][f.cat]||0)+f.montant;
+    });
+    chartFraisMonthly=new Chart(nc,{type:'bar',
+      data:{labels:MONTH_SHORT,datasets:cats.map(cat=>({
+        label:cat,data:moKeys.map(k=>+((mo[k][cat]||0).toFixed(2))),
+        backgroundColor:CAT_COLORS[cat]||'#94a3b8',borderRadius:4,borderWidth:0
+      }))},
+      options:{responsive:true,maintainAspectRatio:false,events:['mousemove','mouseout','click','touchstart','touchmove'],
+        plugins:{legend:{labels:{color:tc,boxWidth:12}},
+          tooltip:{mode:'index',intersect:false,callbacks:{
+            title:items=>{const tot=items.reduce((a,i)=>a+i.parsed.y,0);return`${MONTH_NAMES[items[0].dataIndex]} — ${tot.toFixed(2)} €`;}
+          }}},
+        scales:{x:{stacked:true,ticks:{color:tc,font:{size:12}},grid:{color:gc}},y:{stacked:true,ticks:{color:tc,callback:v=>v+'€'},grid:{color:gc},min:0}},
+        animation:{duration:300}
+      }
+    });
+  }
+}
+
+function renderFraisCatChart(trf){
+  const tc='#7a82a0';
+  const byCat={};
+  const filtered=_fCat==='all'?trf:trf.filter(f=>f.cat===_fCat);
+  filtered.forEach(f=>{byCat[f.cat]=(byCat[f.cat]||0)+f.montant;});
+  const cats=Object.keys(byCat).sort();
+  const el=document.getElementById('chart-frais-cat');
+  const parent=el.parentNode;const nc=document.createElement('canvas');
+  nc.id='chart-frais-cat';nc.style.cssText=el.style.cssText;
+  parent.replaceChild(nc,el);
+  if(chartFraisCat)chartFraisCat.destroy();
+  chartFraisCat=new Chart(nc,{type:'doughnut',
+    data:{labels:cats,datasets:[{data:cats.map(c=>+byCat[c].toFixed(2)),backgroundColor:cats.map(c=>CAT_COLORS[c]||'#94a3b8'),borderWidth:0}]},
+    options:{responsive:true,cutout:'60%',plugins:{legend:{labels:{color:tc}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.parsed.toFixed(2)} €`}}}}
+  });
+}
+
+// ── FRAIS DETAIL TABLE ────────────────────────────────────────────────────
+function renderFraisDetail(){
+  const noEl=document.getElementById('fno-detail'),cont=document.getElementById('fdetail-content');
+  if(!frais.length){noEl.style.display='flex';cont.style.display='none';return;}
+  noEl.style.display='none';cont.style.display='flex';
+  const years=[...new Set(frais.map(f=>f.date?.slice(0,4)).filter(Boolean))].sort();
+  const ysel=document.getElementById('f-year-sel'),prev=ysel.value;
+  ysel.innerHTML='<option value="all">Toutes</option>'+years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  if(prev&&years.includes(prev))ysel.value=prev;
+  const fy=ysel.value;
+  let rows=frais.map((f,i)=>({f,i})).filter(({f})=>fy==='all'||f.date?.startsWith(fy));
+  rows.sort((a,b)=>{
+    const va=fraisSortVal(a.f),vb=fraisSortVal(b.f);
+    if(typeof va==='string')return fraisSort.dir*va.localeCompare(vb);
+    return fraisSort.dir*(va-vb);
+  });
+  updateFraisSortIcons();
+  document.getElementById('frais-body').innerHTML=rows.map(({f,i})=>`
+    <tr>
+      <td style="white-space:nowrap;">${fmtDate(f.date)}</td>
+      <td><span style="display:inline-block;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:500;background:${(CAT_COLORS[f.cat]||'#94a3b8')}33;color:${CAT_COLORS[f.cat]||'#94a3b8'};">${f.cat||'—'}</span></td>
+      <td style="color:var(--muted);font-size:13px;">${f.infos||''}</td>
+      <td style="font-weight:600;color:var(--accent);text-align:right;">${f.montant.toFixed(2)} <span style="color:var(--muted);font-size:11px;">€</span></td>
+      <td style="white-space:nowrap;">
+        <button class="action-btn" onclick="openFraisEdit(${i})">✏️</button>
+        <button class="action-btn" onclick="deleteFrais(${i})">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+function sortFrais(col){
+  if(fraisSort.col===col)fraisSort.dir*=-1;
+  else{fraisSort.col=col;fraisSort.dir=col==='date'?-1:1;}
+  renderFraisDetail();
+}
+function fraisSortVal(f){
+  switch(fraisSort.col){
+    case 'date':return f.date||'';
+    case 'cat':return f.cat||'';
+    case 'montant':return f.montant||0;
+    default:return '';
+  }
+}
+function updateFraisSortIcons(){
+  ['date','cat','montant'].forEach(col=>{
+    const el=document.getElementById('fsort-'+col);if(!el)return;
+    el.textContent=fraisSort.col===col?(fraisSort.dir===-1?' ↓':' ↑'):'';
+  });
+}
+
+
+function toggleFraisAddMenu(e){
+  e.stopPropagation();
+  const m=document.getElementById('frais-add-menu');
+  m.classList.toggle('open');
+  if(m.classList.contains('open'))setTimeout(()=>document.addEventListener('click',()=>m.classList.remove('open'),{once:true}),0);
+}
+function closeFraisMenu(){document.getElementById('frais-add-menu').classList.remove('open');}
+function showFraisTab(name,btn){
+  document.querySelectorAll('#page-frais .tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#page-frais .stab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('ftab-'+name).classList.add('active');
   btn.classList.add('active');
 }
 </script>
