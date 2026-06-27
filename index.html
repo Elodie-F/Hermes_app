@@ -426,7 +426,6 @@ tr:last-child td{border-bottom:none;}
   <div class="modal">
     <div class="modal-src">📂 Import GPX</div>
     <h2>Nouvelle trace</h2>
-    <div class="field"><label>Nom</label><input id="gm-name" type="text"></div>
     <div class="field"><label>Date</label><input id="gm-date" type="date"></div>
     <div class="field"><label>Type</label>
       <select id="gm-type"><option value="pied">🚶 À pied</option><option value="cheval">🐴 À cheval</option></select>
@@ -449,7 +448,6 @@ tr:last-child td{border-bottom:none;}
   <div class="modal">
     <div class="modal-src">✏️ Saisie manuelle</div>
     <h2>Ajouter une sortie</h2>
-    <div class="field"><label>Nom</label><input id="tm-name" type="text" placeholder="Sortie du dimanche"></div>
     <div class="field"><label>Date</label><input id="tm-date" type="date"></div>
     <div class="field"><label>Type</label>
       <select id="tm-type"><option value="pied">🚶 À pied</option><option value="cheval">🐴 À cheval</option></select>
@@ -484,6 +482,14 @@ tr:last-child td{border-bottom:none;}
     <div class="chart-wrap" id="dm-speed-wrap" style="display:none;">
       <div class="chart-title">Vitesse (km/h)</div>
       <canvas id="dm-chart-speed" style="max-height:180px;"></canvas>
+    </div>
+    <div id="dm-gpx-section" style="display:none;margin-top:.25rem;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:5px;">ASSOCIER UN GPX</div>
+      <label style="display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;color:var(--text);">
+        📂 Importer un GPX
+        <input type="file" id="dm-gpx-input" accept=".gpx" style="display:none" onchange="attachGpxToDetail(this)">
+      </label>
+      <span id="dm-gpx-name" style="font-size:12px;color:var(--accent2);margin-left:8px;"></span>
     </div>
     <div class="modal-actions">
       <button class="mbtn mbtn-ghost" onclick="closeModal('modal-detail')">Fermer</button>
@@ -828,7 +834,7 @@ function openGpxPicker(){document.getElementById('file-input')?.click();}
 function openTextModal(){
   document.getElementById('hist-menu').classList.remove('open');
   document.getElementById('tm-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('tm-name').value='';document.getElementById('tm-dist').value='';
+  document.getElementById('tm-dist').value='';
   document.getElementById('tm-dur').value='';document.getElementById('tm-type').value='cheval';
   document.getElementById('tm-comment').value='';
   openModal('modal-text');
@@ -908,7 +914,7 @@ function confirmGpx(){
   }
   pendingStats=computeStats(pts);
   const meta={date:document.getElementById('gm-date').value,type:document.getElementById('gm-type').value,comment:document.getElementById('gm-comment').value.trim()};
-  const name=document.getElementById('gm-name').value.trim()||pendingFile.name.replace('.gpx','');
+  const name=pendingFile?pendingFile.name.replace('.gpx',''):fmtDate(document.getElementById('gm-date').value);
   closeModal('modal-gpx');
   const color=COLORS[traces.length%COLORS.length];
   traces.push({source:'gpx',name,color,meta,points:pts,layers:buildLayers(pts,pendingStats,color),stats:pendingStats});
@@ -926,7 +932,7 @@ function confirmText(){
   const distKm=parseFloat(document.getElementById('tm-dist').value);
   if(!distKm||distKm<=0){alert('Saisis une distance valide.');return;}
   const durSec=parseDur(document.getElementById('tm-dur').value);
-  const name=document.getElementById('tm-name').value.trim()||'Sortie manuelle';
+  const name=fmtDate(document.getElementById('tm-date').value)||'Sortie manuelle';
   const meta={date:document.getElementById('tm-date').value,type:document.getElementById('tm-type').value,comment:document.getElementById('tm-comment').value.trim()};
   closeModal('modal-text');
   const color=COLORS[traces.length%COLORS.length];
@@ -984,6 +990,11 @@ function openDetail(i){
     sd.innerHTML=statCard('Distance',(s.dist/1000).toFixed(2),'km','c-accent')+statCard('Vitesse moy.',s.avgSpeed?s.avgSpeed.toFixed(1):'—','km/h','c-green')+statCard('Vitesse max',s.maxSpeed?s.maxSpeed.toFixed(1):'—','km/h','c-warn');
   }
   // allure
+  // Show GPX import for text entries or entries without points
+  const gpxSec=document.getElementById('dm-gpx-section');
+  if(gpxSec)gpxSec.style.display=isText?'block':'none';
+  document.getElementById('dm-gpx-name').textContent='';
+
   const aw=document.getElementById('dm-allure-wrap');
   if(!isText){
     aw.style.display='block';
@@ -1014,6 +1025,38 @@ function openDetail(i){
   } else sw.style.display='none';
   openModal('modal-detail');
 }
+
+function attachGpxToDetail(input){
+  const file=input.files[0];if(!file)return;
+  document.getElementById('dm-gpx-name').textContent='Chargement…';
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const doc=new DOMParser().parseFromString(ev.target.result,'application/xml');
+    let pts=Array.from(doc.querySelectorAll('trkpt'));
+    if(!pts.length)pts=Array.from(doc.querySelectorAll('wpt'));
+    if(!pts.length){alert('Aucun point trouvé dans ce fichier GPX.');input.value='';return;}
+    const points=pts.map(pt=>({
+      lat:parseFloat(pt.getAttribute('lat')),lon:parseFloat(pt.getAttribute('lon')),
+      ele:parseFloat(pt.querySelector('ele')?.textContent||0),
+      time:pt.querySelector('time')?new Date(pt.querySelector('time').textContent):null
+    }));
+    const filtered=filterOutliers(points);
+    // Attach to pending detail
+    const t=traces[detailIdx];
+    // If has duration, generate timestamps
+    const durRaw=document.getElementById('dm-dur').value.trim();
+    const durSec=parseDur(durRaw)||(t.textData?.durSec)||null;
+    let finalPts=filtered;
+    if(!filtered.some(p=>p.time)&&durSec){
+      const start=new Date(document.getElementById('dm-date').value+'T08:00:00');
+      const intervalMs=(durSec/(filtered.length-1))*1000;
+      finalPts=filtered.map((p,i)=>({...p,time:new Date(start.getTime()+i*intervalMs)}));
+    }
+    t._pendingGpxPoints=finalPts;
+    document.getElementById('dm-gpx-name').textContent=`✓ ${filtered.length} points chargés`;
+  };
+  reader.readAsText(file);
+}
 function saveDetail(){
   if(detailIdx===null)return;
   traces[detailIdx].meta.date=document.getElementById('dm-date').value;
@@ -1038,6 +1081,18 @@ function saveDetail(){
       t.layers.remove();
       t.layers=buildLayers(t.points,t.stats,t.color);
     }
+  }
+  // Apply pending GPX if any
+  const t2=traces[detailIdx];
+  if(t2._pendingGpxPoints){
+    const pts=t2._pendingGpxPoints;
+    delete t2._pendingGpxPoints;
+    t2.source='gpx';
+    t2.points=pts;
+    t2.stats=computeStats(pts);
+    t2.textData=null;
+    if(t2.layers)t2.layers.remove();
+    t2.layers=buildLayers(pts,t2.stats,t2.color);
   }
   closeModal('modal-detail');
   saveStorage();renderAll();
