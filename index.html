@@ -814,7 +814,12 @@ function toggleSaveMenu(e){
   e.stopPropagation();
   const m=document.getElementById('save-menu');
   m.classList.toggle('open');
-  if(m.classList.contains('open'))setTimeout(()=>document.addEventListener('click',()=>m.classList.remove('open'),{once:true}),0);
+  if(m.classList.contains('open'))setTimeout(()=>document.addEventListener('click',closeSaveOnBlur,{once:true}),0);
+}
+function closeSaveOnBlur(e){
+  const m=document.getElementById('save-menu');
+  if(!m.contains(e.target))m.classList.remove('open');
+  else if(m.classList.contains('open'))setTimeout(()=>document.addEventListener('click',closeSaveOnBlur,{once:true}),0);
 }
 function closeSaveMenu(){document.getElementById('save-menu').classList.remove('open');}
 function toggleHistMenu(e){
