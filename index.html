@@ -679,7 +679,7 @@ function renderMapLegend(){
 // ── MAP ────────────────────────────────────────────────────────────────────
 const map=L.map('map',{zoomControl:true}).setView([46.5,2.5],5);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'©OpenStreetMap ©CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
-setTimeout(()=>{loadAllureConfig();renderMapLegend();loadStorage();renderAll();loadFrais();},120);
+setTimeout(()=>{loadAllureConfig();renderMapLegend();loadStorage();renderAll();loadFrais();checkBackupReminder();setTimeout(showBackupReminderIfNeeded,3000);},120);
 
 function toggleMap(cb){
   mapVisible=!mapVisible;
@@ -1565,6 +1565,8 @@ function exportAll(){
   }catch(e){alert('Erreur export : '+e.message);}
 }
 function copyExport(){
+  localStorage.setItem(LS_BACKUP,Date.now());
+  checkBackupReminder();
   const ta=document.getElementById('export-text');
   ta.select();
   try{
@@ -1650,6 +1652,7 @@ function showPage(name){
 
 // ══ FRAIS DATA ════════════════════════════════════════════════════════════
 const LS_FRAIS='hermes_frais_v1';
+const LS_BACKUP='hermes_last_backup';
 const CAT_COLORS={
   'Soins':'#f76495','Alimentation':'#38d9a9','Pension':'#4f8ef7',
   'Matériel':'#f7a94f','Autre':'#94a3b8'
