@@ -201,7 +201,6 @@ tr:last-child td{border-bottom:none;}
     </div>
   </div>
 
-  <input type="file" id="file-input" accept=".gpx" multiple style="display:none">
   <input type="file" id="import-input" accept=".json" style="display:none" onchange="importAll(event)">
 </div>
 
@@ -214,7 +213,7 @@ tr:last-child td{border-bottom:none;}
     <div style="position:relative;flex-shrink:0;">
       <button class="btn-hist" onclick="toggleHistMenu(event)">＋ Sortie ▾</button>
       <div class="hist-menu" id="hist-menu" style="left:0;right:auto;">
-        <div class="hist-item" onclick="document.getElementById('hist-menu').classList.remove('open');openGpxPicker()">📂 Importer un GPX</div>
+        <label class="hist-item" style="cursor:pointer;">📂 Importer un GPX<input type="file" id="file-input" accept=".gpx" multiple style="display:none" onchange="document.getElementById('hist-menu').classList.remove('open');Array.from(this.files).forEach(readGpx);this.value='';"></label>
         <div class="hist-item" onclick="document.getElementById('hist-menu').classList.remove('open');openTextModal()">✏️ Saisie manuelle</div>
         <div class="hist-item" onclick="document.getElementById('hist-menu').classList.remove('open');openPasteModal()">📋 Coller un tableau</div>
       </div>
@@ -824,7 +823,7 @@ function closeHistOnBlur(e){
   const m=document.getElementById('hist-menu');
   if(!m.contains(e.target))m.classList.remove('open');
 }
-function openGpxPicker(){document.getElementById('hist-menu').classList.remove('open');document.getElementById('file-input').click();}
+function openGpxPicker(){document.getElementById('file-input')?.click();}
 function openTextModal(){
   document.getElementById('hist-menu').classList.remove('open');
   document.getElementById('tm-date').value=new Date().toISOString().slice(0,10);
@@ -835,7 +834,7 @@ function openTextModal(){
 }
 
 // ── GPX IMPORT ─────────────────────────────────────────────────────────────
-document.getElementById('file-input').addEventListener('change',e=>{Array.from(e.target.files).forEach(readGpx);e.target.value='';});
+// file-input is now inline in its label — handled by onchange attribute
 function readGpx(file){
   const r=new FileReader();
   r.onload=ev=>{
