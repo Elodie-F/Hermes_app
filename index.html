@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0f1219">
+<meta name="theme-color" content="#1e6b45">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Hermès</title>
@@ -12,44 +12,50 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{
+  --bg:#f0f4f0;--surface:#ffffff;--surface2:#f5f8f5;--border:#dde8dd;
+  --accent:#1e6b45;--accent2:#4ecb71;--warn:#ffd253;--danger:#ef4461;
+  --text:#1a2e1a;--muted:#6b856b;--font:'Inter',system-ui,sans-serif;--radius:14px;
+  --shadow:0 2px 8px rgba(30,60,30,.08);--shadow-lg:0 4px 20px rgba(30,60,30,.12);
+  --c-trot:#ffd253;--c-galop:#ef4461;
+}
+[data-theme="dark"]{
   --bg:#0f1219;--surface:#1a1f2e;--surface2:#242b3d;--border:#2e3650;
-  --accent:#4f8ef7;--accent2:#38d9a9;--warn:#f7a94f;--danger:#f76495;
-  --text:#e8eaf2;--muted:#7a82a0;--font:'Inter',system-ui,sans-serif;--radius:12px;
-  --c-trot:#f7a94f;--c-galop:#f76495;
+  --accent:#4ecb71;--accent2:#4ecb71;--warn:#ffd253;--danger:#ef4461;
+  --text:#e8eaf2;--muted:#7a82a0;
+  --shadow:0 2px 8px rgba(0,0,0,.4);--shadow-lg:0 4px 24px rgba(0,0,0,.6);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;}
+html{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;-webkit-text-size-adjust:100%;}
 body{min-height:100vh;display:flex;flex-direction:column;}
 
-/* ── RESET & BASE ── */
-html{font-size:16px;-webkit-text-size-adjust:100%;}
-
 /* ── TOP BAR ── */
-.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.6rem .75rem;display:flex;align-items:center;gap:.5rem;position:sticky;top:0;z-index:1000;}
-.topbar h1{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-right:auto;white-space:nowrap;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.6rem .75rem;display:flex;align-items:center;gap:.5rem;position:sticky;top:0;z-index:1000;box-shadow:var(--shadow);}
+.topbar h1{font-size:18px;font-weight:800;letter-spacing:-.4px;margin-right:auto;white-space:nowrap;color:var(--accent);}
 #storage-indicator{font-size:11px;color:var(--muted);white-space:nowrap;display:none;}
 @media(min-width:480px){#storage-indicator{display:block;}}
-.btn-hist{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;position:relative;-webkit-tap-highlight-color:transparent;width:auto;}
+.btn-hist{background:var(--surface);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius);padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;position:relative;-webkit-tap-highlight-color:transparent;width:auto;box-shadow:var(--shadow);}
+.btn-hist:active{background:var(--surface2);}
 
 /* hist dropdown */
-.hist-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);min-width:200px;z-index:2000;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.hist-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);min-width:200px;z-index:2000;overflow:hidden;box-shadow:var(--shadow-lg);}
 .hist-menu.open{display:block;}
-.hist-item{padding:13px 16px;font-size:15px;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--text);-webkit-tap-highlight-color:transparent;}
-.hist-item:active{background:var(--surface2);}
+.hist-item{padding:12px 16px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--text);-webkit-tap-highlight-color:transparent;}
+.hist-item:hover{background:var(--surface2);}
+.hist-item:active{background:var(--border);}
 
 /* ── MAIN SCROLL ── */
 main{flex:1;overflow-y:auto;padding:.75rem;display:flex;flex-direction:column;gap:.75rem;}
 
 /* ── MAP SECTION ── */
-.map-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.map-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
 .map-header{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;}
-.map-header span{font-size:15px;font-weight:600;}
+.map-header span{font-size:15px;font-weight:700;color:var(--text);}
 .map-toggle{font-size:13px;color:var(--muted);}
 #map{height:45vw;min-height:220px;max-height:400px;transition:height .25s;}
 #map.collapsed{height:0;min-height:0;}
 
 /* map legend overlay */
-.map-legend{position:absolute;bottom:10px;right:10px;z-index:500;background:rgba(15,18,25,.88);border:1px solid var(--border);border-radius:10px;padding:7px 10px;display:flex;flex-direction:column;gap:5px;}
+.map-legend{position:absolute;bottom:10px;right:10px;z-index:500;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:10px;padding:7px 10px;display:flex;flex-direction:column;gap:5px;box-shadow:var(--shadow);}
 .legend-row{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text);}
 .legend-line{width:18px;height:3px;border-radius:2px;flex-shrink:0;}
 .map-wrap{position:relative;}
@@ -61,39 +67,40 @@ main{flex:1;overflow-y:auto;padding:.75rem;display:flex;flex-direction:column;ga
 .action-btn{background:none;border:none;cursor:pointer;font-size:18px;padding:4px 6px;border-radius:6px;-webkit-tap-highlight-color:transparent;}
 .action-btn:active{background:var(--surface2);}
 .synth-wrap table tbody tr{cursor:pointer;}
-.synth-wrap table tbody tr:active{background:var(--surface2);}
+.synth-wrap table tbody tr:hover{background:var(--surface2);}
+.synth-wrap table tbody tr:active{background:var(--border);}
 .empty-hint{color:var(--muted);font-size:14px;padding:10px 4px;}
 
 /* ── STATS SECTION ── */
-.stats-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.stats-tabs{display:flex;border-bottom:1px solid var(--border);}
-.stab{flex:1;background:none;border:none;color:var(--muted);font-size:14px;font-weight:500;padding:.8rem .5rem;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s;-webkit-tap-highlight-color:transparent;}
-.stab.active{color:var(--text);border-bottom-color:var(--accent);}
-.tab-panel{display:none;padding:.75rem;flex-direction:column;gap:.75rem;}
+.stats-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+.stats-tabs{display:flex;border-bottom:2px solid var(--border);}
+.stab{flex:1;background:none;border:none;color:var(--muted);font-size:14px;font-weight:600;padding:.8rem .5rem;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;-webkit-tap-highlight-color:transparent;}
+.stab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-panel{display:none;padding:.85rem;flex-direction:column;gap:.85rem;}
 .tab-panel.active{display:flex;}
 
 /* stat cards */
-.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
 @media(min-width:400px){.stats-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}}
-.stat-card{background:var(--surface2);border-radius:10px;padding:.85rem;}
-.stat-label{font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;}
-.stat-val{font-size:22px;font-weight:700;line-height:1;}
-.stat-unit{font-size:13px;color:var(--muted);font-weight:400;margin-left:2px;}
+.stat-card{background:var(--surface2);border-radius:12px;padding:1rem;border:1px solid var(--border);}
+.stat-label{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;}
+.stat-val{font-size:24px;font-weight:800;line-height:1;color:var(--text);}
+.stat-unit{font-size:13px;color:var(--muted);font-weight:500;margin-left:2px;}
 .c-accent{color:var(--accent);}
 .c-green{color:var(--accent2);}
 .c-warn{color:var(--warn);}
 
 /* tooltip */
 .tip{position:relative;display:inline-block;}
-.tip .tip-box{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1f2e;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);line-height:1.5;width:230px;z-index:999;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.4);}
-.tip .tip-box::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#2e3650;}
+.tip .tip-box{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);line-height:1.5;width:230px;z-index:999;pointer-events:none;box-shadow:var(--shadow-lg);}
+.tip .tip-box::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--border);}
 .tip:hover .tip-box,.tip:focus .tip-box{display:block;}
 
 /* allure bars */
-.allure-wrap{background:var(--surface2);border-radius:10px;padding:.85rem;display:flex;flex-direction:column;gap:8px;}
-.allure-title{font-size:13px;color:var(--muted);margin-bottom:2px;}
+.allure-wrap{background:var(--surface2);border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:8px;border:1px solid var(--border);}
+.allure-title{font-size:12px;color:var(--muted);margin-bottom:2px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
 .allure-row{display:flex;align-items:center;gap:8px;font-size:13px;}
-.allure-label{width:46px;color:var(--text);flex-shrink:0;}
+.allure-label{width:46px;color:var(--text);flex-shrink:0;font-weight:600;}
 .allure-track{flex:1;background:var(--border);border-radius:4px;height:7px;overflow:hidden;}
 .allure-fill{height:100%;border-radius:4px;}
 .allure-pct{width:32px;text-align:right;color:var(--muted);flex-shrink:0;font-size:12px;}
@@ -101,30 +108,33 @@ main{flex:1;overflow-y:auto;padding:.75rem;display:flex;flex-direction:column;ga
 .allure-dist{width:48px;text-align:right;color:var(--muted);font-size:11px;flex-shrink:0;}
 
 /* chart */
-.chart-wrap{background:var(--surface2);border-radius:10px;padding:.85rem;}
-.chart-title{font-size:13px;color:var(--muted);margin-bottom:.6rem;}
+.chart-wrap{background:var(--surface2);border-radius:12px;padding:1rem;border:1px solid var(--border);}
+.chart-title{font-size:12px;color:var(--muted);margin-bottom:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
 canvas{max-height:200px;}
 
 /* trace selector */
-.trace-sel select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:6px 10px;width:100%;}
+.trace-sel select{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:6px 10px;width:100%;}
 
 /* badges */
-.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
-.badge-pied{background:rgba(79,142,247,.2);color:#4f8ef7;}
-.badge-cheval{background:rgba(247,169,79,.2);color:#f7a94f;}
+.badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;}
+.badge-pied{background:rgba(26,143,160,.12);color:#1a8fa0;}
+.badge-cheval{background:rgba(78,203,113,.15);color:#2a9a50;}
 
 /* comment */
-.comment-box{background:var(--surface2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--muted);font-style:italic;line-height:1.5;}
+.comment-box{background:var(--surface2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--muted);font-style:italic;line-height:1.5;border-left:3px solid var(--accent);}
 
 /* notice */
-.notice{background:var(--surface2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--muted);}
+.notice{background:rgba(30,107,69,.06);border-radius:8px;padding:.75rem;font-size:13px;color:var(--muted);border-left:3px solid var(--accent2);}
 
 /* synthèse table */
 .synth-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
-th{color:var(--muted);font-weight:500;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
-td{padding:7px 8px;border-bottom:1px solid rgba(46,54,80,.4);white-space:nowrap;}
+th{color:var(--muted);font-weight:700;padding:8px 8px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;text-transform:uppercase;font-size:11px;letter-spacing:.04em;}
+td{padding:9px 8px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text);}
 tr:last-child td{border-bottom:none;}
+
+/* year filter */
+.year-sel{display:flex;gap:8px;align-items:center;}
 
 /* year filter */
 .year-sel{display:flex;gap:8px;align-items:center;}
@@ -138,19 +148,36 @@ tr:last-child td{border-bottom:none;}
 /* ── MODALS ── */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:3000;align-items:center;justify-content:center;}
 .modal-bg.open{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;width:min(400px,96vw);display:flex;flex-direction:column;gap:1rem;max-height:90vh;overflow-y:auto;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;width:min(400px,96vw);display:flex;flex-direction:column;gap:1rem;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
 .modal h2{font-size:16px;font-weight:600;}
 .modal-src{font-size:12px;color:var(--muted);background:var(--surface2);border-radius:6px;padding:3px 10px;display:inline-block;}
 .field{display:flex;flex-direction:column;gap:5px;}
 .field label{font-size:12px;color:var(--muted);}
-.field input,.field select,.field textarea{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:16px;padding:10px 12px;font-family:var(--font);width:100%;}
+.field input,.field select,.field textarea{background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:16px;padding:10px 12px;font-family:var(--font);width:100%;}
 .field textarea{resize:vertical;min-height:65px;}
 .field-row{display:flex;gap:8px;}
 .field-row .field{flex:1;}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;}
 .mbtn{border:none;border-radius:8px;padding:11px 18px;font-size:15px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.mbtn-primary{background:var(--accent);color:#fff;}
+.mbtn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(30,107,69,.3);}
 .mbtn-ghost{background:var(--surface2);color:var(--muted);}
+
+/* ── CALENDAR ── */
+.cal-day{min-height:72px;padding:6px 4px 4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:default;position:relative;transition:background .12s;}
+.cal-day:nth-child(7n){border-right:none;}
+.cal-day.other-month{opacity:.35;}
+.cal-day.today .cal-num{background:var(--accent);color:#fff;border-radius:50%;}
+.cal-day.has-events{cursor:pointer;}
+.cal-day.has-events:hover,.cal-day.has-events:active{background:var(--surface2);}
+.cal-day.selected{background:rgba(78,203,113,.12);outline:2px solid var(--accent2);outline-offset:-2px;}
+.cal-num{font-size:13px;font-weight:700;color:var(--text);width:24px;height:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 3px;}
+.cal-dots{display:flex;justify-content:center;gap:3px;flex-wrap:wrap;margin-top:2px;min-height:8px;}
+.cal-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:block;}
+.cal-count{font-size:10px;color:var(--muted);text-align:center;margin-top:2px;line-height:1;}
+.cal-detail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow);}
+.cal-detail-title{font-size:14px;font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.04em;}
+.cal-event-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.cal-event-row:last-child{border-bottom:none;}
 
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -163,8 +190,9 @@ tr:last-child td{border-bottom:none;}
 <div class="topbar">
   <h1>🐴&nbsp;Hermès</h1>
   <div style="display:flex;gap:3px;background:var(--surface2);border-radius:10px;padding:3px;">
-    <button id="page-tab-sorties" onclick="showPage('sorties')" style="border:none;border-radius:8px;padding:6px 14px;font-size:14px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s;">Sorties</button>
-    <button id="page-tab-frais" onclick="showPage('frais')" style="border:none;border-radius:8px;padding:6px 14px;font-size:14px;font-weight:600;cursor:pointer;background:none;color:var(--muted);transition:all .15s;">Dépenses</button>
+    <button id="page-tab-sorties" onclick="showPage('sorties')" style="border:none;border-radius:10px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s;">Sorties</button>
+    <button id="page-tab-frais" onclick="showPage('frais')" style="border:none;border-radius:10px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer;background:none;color:var(--muted);transition:all .15s;">Dépenses</button>
+    <button id="page-tab-cal" onclick="showPage('cal')" style="border:none;border-radius:10px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer;background:none;color:var(--muted);transition:all .15s;">Calendrier</button>
   </div>
   <!-- Settings + Save button -->
   <div style="position:relative;">
@@ -195,6 +223,8 @@ tr:last-child td{border-bottom:none;}
         </div>
       </div>
       <div style="padding:4px 0;">
+        <div class="hist-item" onclick="event.stopPropagation();toggleDarkMode()">🌙 <span id="dark-mode-label">Mode sombre</span></div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
         <div class="hist-item" onclick="closeSaveMenu();exportAll()">📤 Exporter les données</div>
         <div class="hist-item" onclick="closeSaveMenu();document.getElementById('import-input').click()">📥 Importer une sauvegarde</div>
       </div>
@@ -246,7 +276,7 @@ tr:last-child td{border-bottom:none;}
 
     <!-- ── Global ── -->
     <div class="tab-panel active" id="tab-global">
-      <div id="no-global" class="no-data">
+      <div id="no-global" class="no-data" >
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
         Aucune donnée
       </div>
@@ -381,6 +411,57 @@ tr:last-child td{border-bottom:none;}
   </div>
 
 </div><!-- /page-frais -->
+
+
+<!-- ══ PAGE CALENDRIER ═══════════════════════════════════════════════════════ -->
+<div id="page-cal" style="display:none;flex-direction:column;gap:.75rem;">
+
+  <!-- Activités action bar -->
+  <div class="action-bar">
+    <div style="position:relative;flex-shrink:0;">
+      <button class="btn-hist" onclick="toggleCalAddMenu(event)">＋ Activité ▾</button>
+      <div class="hist-menu" id="cal-add-menu" style="left:0;right:auto;">
+        <div class="hist-item" onclick="closeCalMenu();openCalAddModal('sortie')">🐴 Sortie</div>
+        <div class="hist-item" onclick="closeCalMenu();openCalAddModal('achat')">🛒 Dépense</div>
+        <div class="hist-item" onclick="closeCalMenu();openCalAddModal('soin')">💊 Soin</div>
+        <div class="hist-item" onclick="closeCalMenu();openCalAddModal('activite')">⭐ Activité</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav bar -->
+  <div class="action-bar">
+    <button class="btn-hist" onclick="calPrevMonth()" style="padding:8px 14px;font-size:18px;">‹</button>
+    <span id="cal-title" style="font-size:17px;font-weight:800;color:var(--text);flex:1;text-align:center;"></span>
+    <button class="btn-hist" onclick="calNextMonth()" style="padding:8px 14px;font-size:18px;">›</button>
+  </div>
+
+  <!-- Legend -->
+  <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:.25rem .5rem;">
+    <span style="display:flex;align-items:center;gap:5px;"><span class="cal-dot" style="background:#4ecb71;display:inline-block;"></span>Sortie</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span class="cal-dot" style="background:#ffd253;display:inline-block;"></span>Achat</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span class="cal-dot" style="background:#ef4461;display:inline-block;"></span>Soin</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span class="cal-dot" style="background:#1a8fa0;display:inline-block;"></span>Activité</span>
+  </div>
+
+  <!-- Calendar grid -->
+  <div class="stats-section" style="overflow:visible;">
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:2px solid var(--border);">
+      <div style="padding:8px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Lun</div>
+      <div style="padding:8px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Mar</div>
+      <div style="padding:8px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Mer</div>
+      <div style="padding:8px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Jeu</div>
+      <div style="padding:8px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Ven</div>
+      <div style="padding:8px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Sam</div>
+      <div style="padding:8px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Dim</div>
+    </div>
+    <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);"></div>
+  </div>
+
+  <!-- Day detail panel -->
+  <div id="cal-detail" style="display:none;flex-direction:column;gap:.75rem;"></div>
+
+</div><!-- /page-cal -->
 
 </main>
 
@@ -524,11 +605,23 @@ tr:last-child td{border-bottom:none;}
     <h2>Ajouter une dépense</h2>
     <div class="field"><label>Date</label><input id="fm-date" type="date"></div>
     <div class="field"><label>Catégorie</label>
-      <select id="fm-cat">
+      <select id="fm-cat" onchange="toggleSoinsSubtype()">
         <option value="Soins">Soins</option>
         <option value="Alimentation">Alimentation</option>
         <option value="Pension">Pension</option>
         <option value="Matériel">Matériel</option>
+        <option value="Autre">Autre</option>
+      </select>
+    </div>
+    <div class="field" id="fm-soins-subtype-field">
+      <label>Type de soin</label>
+      <select id="fm-soins-subtype">
+        <option value="Vétérinaire">Vétérinaire</option>
+        <option value="Dentiste">Dentiste</option>
+        <option value="Parage">Parage</option>
+        <option value="Ostéo">Ostéo</option>
+        <option value="Vaccin">Vaccin</option>
+        <option value="Vermifuge">Vermifuge</option>
         <option value="Autre">Autre</option>
       </select>
     </div>
@@ -547,11 +640,23 @@ tr:last-child td{border-bottom:none;}
     <h2>Modifier la dépense</h2>
     <div class="field"><label>Date</label><input id="fe-date" type="date"></div>
     <div class="field"><label>Catégorie</label>
-      <select id="fe-cat">
+      <select id="fe-cat" onchange="toggleSoinsSubtypeEdit()">
         <option value="Soins">Soins</option>
         <option value="Alimentation">Alimentation</option>
         <option value="Pension">Pension</option>
         <option value="Matériel">Matériel</option>
+        <option value="Autre">Autre</option>
+      </select>
+    </div>
+    <div class="field" id="fe-soins-subtype-field">
+      <label>Type de soin</label>
+      <select id="fe-soins-subtype">
+        <option value="Vétérinaire">Vétérinaire</option>
+        <option value="Dentiste">Dentiste</option>
+        <option value="Parage">Parage</option>
+        <option value="Ostéo">Ostéo</option>
+        <option value="Vaccin">Vaccin</option>
+        <option value="Vermifuge">Vermifuge</option>
         <option value="Autre">Autre</option>
       </select>
     </div>
@@ -564,6 +669,69 @@ tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+
+<!-- ══ MODAL : CAL ADD ════════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-cal-add">
+  <div class="modal">
+    <div class="modal-src" id="cal-modal-src">＋ Nouvelle activité</div>
+    <h2 id="cal-modal-title">Ajouter</h2>
+    <div class="field"><label>Date</label><input id="ca-date" type="date"></div>
+
+    <!-- Sortie fields -->
+    <div id="ca-sortie-fields">
+      <div class="field"><label>Type</label>
+        <select id="ca-sortie-type"><option value="cheval">À cheval</option><option value="pied">À pied</option></select>
+      </div>
+      <div class="field"><label>Distance (km)</label><input id="ca-dist" type="number" min="0" step="0.1" placeholder="0.0"></div>
+      <div class="field"><label>Durée <span style="color:var(--muted);font-size:11px;">(ex: 1h30)</span></label><input id="ca-dur" type="text" placeholder="1h30"></div>
+      <div class="field"><label>Commentaire</label><textarea id="ca-comment" placeholder="Notes…"></textarea></div>
+    </div>
+
+    <!-- Achat fields -->
+    <div id="ca-achat-fields" style="display:none;">
+      <div class="field"><label>Catégorie</label>
+        <select id="ca-achat-cat">
+          <option value="Soins">Soins</option>
+          <option value="Alimentation">Alimentation</option>
+          <option value="Pension">Pension</option>
+          <option value="Matériel">Matériel</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+      <div class="field"><label>Montant (€)</label><input id="ca-montant" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label>Description</label><input id="ca-achat-desc" type="text" placeholder="Description…"></div>
+    </div>
+
+    <!-- Soin fields -->
+    <div id="ca-soin-fields" style="display:none;">
+      <div class="field"><label>Type de soin</label>
+        <select id="ca-soin-type">
+          <option value="Vétérinaire">Vétérinaire</option>
+          <option value="Dentiste">Dentiste</option>
+          <option value="Parage">Parage</option>
+          <option value="Ostéo">Ostéo</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+      <div class="field"><label>Notes</label><textarea id="ca-soin-notes" placeholder="Observations…"></textarea></div>
+      <div style="background:rgba(78,203,113,.08);border:1px solid var(--border);border-radius:10px;padding:.75rem;display:flex;flex-direction:column;gap:.5rem;">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;">Dépense associée (optionnel)</div>
+        <div class="field" style="margin:0;"><label>Montant (€)</label><input id="ca-soin-montant" type="number" min="0" step="0.01" placeholder="Laisser vide si gratuit"></div>
+      </div>
+    </div>
+
+    <!-- Activité fields -->
+    <div id="ca-activite-fields" style="display:none;">
+      <div class="field"><label>Titre</label><input id="ca-activite-titre" type="text" placeholder="Ex: Concours de saut…"></div>
+      <div class="field"><label>Description</label><textarea id="ca-activite-desc" placeholder="Notes libres…"></textarea></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="mbtn mbtn-ghost" onclick="closeModal('modal-cal-add')">Annuler</button>
+      <button class="mbtn mbtn-primary" onclick="confirmCalAdd()">Ajouter</button>
+    </div>
+  </div>
+</div>
 <!-- ══ MODAL : EXPORT ══════════════════════════════════════════════════════ -->
 <div class="modal-bg" id="modal-export">
   <div class="modal">
@@ -584,7 +752,7 @@ tr:last-child td{border-bottom:none;}
 // ── CONSTANTS ──────────────────────────────────────────────────────────────
 // ── ALLURE CONFIG ──────────────────────────────────────────────────────────
 const ALLURE_DEFAULTS={walk:7.5,trot:30};
-const ALLURE_COLORS={walk:'#38d9a9',trot:'#f7a94f',galop:'#f76495'};
+const ALLURE_COLORS={walk:'#4ecb71',trot:'#ffd253',galop:'#ef4461'};
 let ALLURES=buildAllures(ALLURE_DEFAULTS.walk, ALLURE_DEFAULTS.trot);
 function buildAllures(walk,trot){
   return[
@@ -593,9 +761,33 @@ function buildAllures(walk,trot){
     {key:'galop',label:'Galop',color:ALLURE_COLORS.galop, max:Infinity},
   ];
 }
-const COLORS=['#4f8ef7','#c67ef7','#f7e24f','#5ce65c','#e06cf7','#f76495','#38d9a9'];
+const COLORS=['#4ecb71','#1a8fa0','#ffd253','#ef4461','#2f3136','#7ed4a0','#5bc4d4'];
 const SRC={live:'⏺',gpx:'📂',text:'✏️'};
 const LS_KEY='tracegps_v3';
+const LS_EVENTS='hermes_events_v1';
+const LS_FRAIS='hermes_frais_v1';
+const LS_BACKUP='hermes_last_backup';
+const LS_THEME='hermes_theme';
+
+// ── DARK MODE (declared early so initTheme() can use it) ───────────────────
+function initTheme(){
+  const saved=localStorage.getItem(LS_THEME)||'light';
+  document.documentElement.setAttribute('data-theme',saved==='dark'?'dark':'');
+  // Update label when DOM is ready
+  requestAnimationFrame(()=>{
+    const lbl=document.getElementById('dark-mode-label');
+    if(lbl)lbl.textContent=saved==='dark'?'Mode clair':'Mode sombre';
+  });
+}
+function toggleDarkMode(){
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  const next=isDark?'light':'dark';
+  localStorage.setItem(LS_THEME,next);
+  document.documentElement.setAttribute('data-theme',next==='dark'?'dark':'');
+  const lbl=document.getElementById('dark-mode-label');
+  if(lbl)lbl.textContent=next==='dark'?'Mode clair':'Mode sombre';
+  setTimeout(()=>{renderAll();if(typeof renderFraisAll==='function')renderFraisAll();},50);
+}
 
 // ── STATE ──────────────────────────────────────────────────────────────────
 let traces=[], selectedIdx=null;
@@ -679,7 +871,11 @@ function renderMapLegend(){
 // ── MAP ────────────────────────────────────────────────────────────────────
 const map=L.map('map',{zoomControl:true}).setView([46.5,2.5],5);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'©OpenStreetMap ©CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
-setTimeout(()=>{loadAllureConfig();renderMapLegend();loadStorage();renderAll();loadFrais();checkBackupReminder();setTimeout(showBackupReminderIfNeeded,3000);},120);
+initTheme();
+setTimeout(()=>{loadAllureConfig();renderMapLegend();loadStorage();renderAll();loadFrais();loadCalEvents();checkBackupReminder();setTimeout(showBackupReminderIfNeeded,3000);
+  renderCalendar();
+  if(document.getElementById('page-cal').style.display==='flex')renderCalendar();
+},120);
 
 function toggleMap(cb){
   mapVisible=!mapVisible;
@@ -971,7 +1167,12 @@ function _doStartLive(){
 }
 
 // ── RENDER ALL ─────────────────────────────────────────────────────────────
-function renderAll(){if(typeof synthSelection!=="undefined")synthSelection.clear();renderList();renderGlobalTab();renderSynthese();}
+function renderAll(){
+  if(typeof synthSelection!=="undefined")synthSelection.clear();
+  renderList();renderGlobalTab();renderSynthese();
+  // Refresh calendar if visible
+  if(document.getElementById('page-cal')?.style.display==='flex')renderCalendar();
+}
 
 // ── DETAIL MODAL ───────────────────────────────────────────────────────────
 let detailIdx=null, detailChart=null;
@@ -1017,7 +1218,8 @@ function openDetail(i){
     const pts=t.points.filter((_,j)=>j%st===0);
     let dd=0;const cDist=pts.map((p,j)=>{if(j>0)dd+=haversine(pts[j-1],p);return(dd/1000).toFixed(2);});
     const spds=t.stats.speeds.filter((_,j)=>j%st===0);
-    const gc='rgba(46,54,80,.8)',tc='#7a82a0';
+    const isDk=document.documentElement.getAttribute('data-theme')==='dark';
+  const gc=isDk?'rgba(58,64,80,.8)':'rgba(180,200,180,.6)',tc=isDk?'#8892a0':'#6b856b';
     if(detailChart)detailChart.destroy();
     detailChart=new Chart(document.getElementById('dm-chart-speed'),{
       type:'bar',
@@ -1122,7 +1324,7 @@ function renderGlobalTab(){
   pillsEl.innerHTML=[...years,'all'].map(y=>{
     const lbl=y==='all'?'Toutes':y;
     const active=window._gYear===y;
-    return`<button onclick="window._gYear='${y}';renderGlobalTab();" style="border:none;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;background:${active?'var(--accent)':'var(--surface2)'};color:${active?'#fff':'var(--muted)'};transition:all .15s;">${lbl}</button>`;
+    return`<button onclick="window._gYear='${y}';renderGlobalTab();" style="border:none;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;background:${active?'var(--accent)':'var(--surface)'};color:${active?'#fff':'var(--muted)'};border:1.5px solid ${active?'var(--accent)':'var(--border)'};transition:all .15s;">${lbl}</button>`;
   }).join('');
 
   // Filter traces by selected year
@@ -1170,7 +1372,8 @@ function renderGlobalTab(){
     </div>`;
   }).join('');
 
-  const gc='rgba(46,54,80,.8)',tc='#7a82a0';
+  const isDk=document.documentElement.getAttribute('data-theme')==='dark';
+  const gc=isDk?'rgba(58,64,80,.8)':'rgba(180,200,180,.6)',tc=isDk?'#8892a0':'#6b856b';
 
   // monthly chart year selector — sync with pill selection
   const mySel=document.getElementById('monthly-year');
@@ -1186,14 +1389,15 @@ function renderGlobalTab(){
 
 const MONTH_NAMES=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const MONTH_SHORT=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
-const TYPE_COLORS={pied:'#4f8ef7',cheval:'#91c8f7'};
+const TYPE_COLORS={pied:'#1a8fa0',cheval:'#4ecb71'};
 const TYPE_LABELS={pied:'À pied',cheval:'À cheval'};
-const YEAR_PALETTE=['#4f8ef7','#38d9a9','#f7a94f','#f76495','#c67ef7','#f7e24f','#5ce65c'];
+const YEAR_PALETTE=['#4ecb71','#1a8fa0','#ffd253','#ef4461','#2f3136','#7ed4a0','#5bc4d4'];
 
 function renderMonthlyChart(){
   const y=window._gYear||'all';
   const gType=window._gType||'all';
-  const gc='rgba(46,54,80,.8)',tc='#7a82a0';
+  const isDk=document.documentElement.getAttribute('data-theme')==='dark';
+  const gc=isDk?'rgba(58,64,80,.8)':'rgba(180,200,180,.6)',tc=isDk?'#8892a0':'#6b856b';
   const moKeys=['01','02','03','04','05','06','07','08','09','10','11','12'];
 
   // Update type pill styles
@@ -1595,7 +1799,7 @@ function importAll(e){
     try{
       const payload=JSON.parse(ev.target.result);
       if(!payload.version||!Array.isArray(payload.data))
-        throw new Error('Format invalide — ce fichier n\'est pas une sauvegarde Hermès.');
+        throw new Error("Format invalide — ce fichier n'est pas une sauvegarde Hermès.");
       const existing=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
       let merged, choice=false;
       if(existing.length){
@@ -1619,14 +1823,15 @@ function importAll(e){
         const mf=choice?[...ef,...payload.frais.filter(f=>!ef.some(e=>e.date===f.date&&e.montant===f.montant&&e.cat===f.cat))]:payload.frais;
         localStorage.setItem(LS_FRAIS,JSON.stringify(mf));
       }
-      traces.forEach(t=>{if(t.layers)t.layers.remove();});
-      traces=[];
-      loadStorage();renderAll();loadAllureConfig();loadFrais();
-      alert(`✓ ${merged.length} trace${merged.length>1?'s':''} chargée${merged.length>1?'s':''}.`);
+      // Reload page to cleanly rebuild all map layers from fresh state
+      alert(`✓ ${merged.length} trace${merged.length>1?'s':''} chargée${merged.length>1?'s':''}. La page va se recharger.`);
+      location.reload();
     }catch(err){alert('Erreur import : '+err.message);}
   };
   reader.readAsText(file);
 }
+
+// ── DARK MODE ──────────────────────────────────────────────────────────────
 
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
@@ -1639,16 +1844,293 @@ function showTab(name,btn){
   btn.classList.add('active');
 }
 
+
+
+// ══ ÉVÉNEMENTS CALENDRIER ════════════════════════════════════════════════════
+// Events: [{id, date, type:'sortie'|'achat'|'soin'|'activite', data:{}}]
+let calEvents=[];
+let _calAddType='sortie';
+
+const CAL_COLORS={
+  sortie:'#4ecb71', achat:'#ffd253', soin:'#ef4461', activite:'#1a8fa0'
+};
+const CAL_LABELS={
+  sortie:'Sortie', achat:'Achat', soin:'Soin', activite:'Activité'
+};
+
+function loadCalEvents(){
+  try{const r=localStorage.getItem(LS_EVENTS);if(r)calEvents=JSON.parse(r);}catch(e){}
+}
+function saveCalEvents(){
+  try{localStorage.setItem(LS_EVENTS,JSON.stringify(calEvents));}catch(e){}
+}
+
+function toggleCalAddMenu(e){
+  e.stopPropagation();
+  const m=document.getElementById('cal-add-menu');
+  m.classList.toggle('open');
+  if(m.classList.contains('open'))setTimeout(()=>document.addEventListener('click',()=>m.classList.remove('open'),{once:true}),0);
+}
+function closeCalMenu(){document.getElementById('cal-add-menu').classList.remove('open');}
+
+function openCalAddModal(type){
+  _calAddType=type;
+  document.getElementById('ca-date').value=new Date().toISOString().slice(0,10);
+  // Hide all field groups, show relevant one
+  ['sortie','achat','soin','activite'].forEach(t=>{
+    document.getElementById(`ca-${t}-fields`).style.display=t===type?'':'none';
+  });
+  // Reset fields
+  ['ca-dist','ca-dur','ca-comment','ca-montant','ca-achat-desc','ca-soin-notes','ca-soin-montant','ca-activite-titre','ca-activite-desc'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const labels={sortie:'🐴 Ajouter une sortie',achat:'🛒 Ajouter un achat',soin:'💊 Ajouter un soin',activite:'⭐ Ajouter une activité'};
+  const srcs={sortie:'🐴 Sortie',achat:'🛒 Achat',soin:'💊 Soin',activite:'⭐ Activité'};
+  document.getElementById('cal-modal-title').textContent=labels[type];
+  document.getElementById('cal-modal-src').textContent=srcs[type];
+  openModal('modal-cal-add');
+}
+
+function confirmCalAdd(){
+  const date=document.getElementById('ca-date').value;
+  if(!date){alert('Veuillez choisir une date.');return;}
+  const id='ev_'+Date.now();
+
+  if(_calAddType==='sortie'){
+    const durRaw=document.getElementById('ca-dur').value.trim();
+    const durSec=parseDur(durRaw)||0;
+    const distKm=parseFloat(document.getElementById('ca-dist').value)||0;
+    const type=document.getElementById('ca-sortie-type').value;
+    const comment=document.getElementById('ca-comment').value.trim();
+    const avgSpeed=durSec>0&&distKm>0?(distKm/(durSec/3600)):0;
+    traces.push({source:'text',name:fmtDate(date),color:COLORS[traces.length%COLORS.length],
+      meta:{date,type,comment},points:null,layers:null,
+      textData:{distKm,durSec,avgSpeed},stats:{}});
+    saveStorage();renderAll();
+
+  } else if(_calAddType==='achat'){
+    const montant=parseFloat(document.getElementById('ca-montant').value);
+    if(isNaN(montant)||montant<0){alert('Montant invalide.');return;}
+    const cat=document.getElementById('ca-achat-cat').value;
+    const infos=document.getElementById('ca-achat-desc').value.trim();
+    frais.push({date,cat,montant,infos});
+    saveFrais();renderFraisAll();
+
+  } else if(_calAddType==='soin'){
+    const soinType=document.getElementById('ca-soin-type').value;
+    const notes=document.getElementById('ca-soin-notes').value.trim();
+    const montantRaw=document.getElementById('ca-soin-montant').value;
+    const montant=parseFloat(montantRaw);
+    // Create event
+    calEvents.push({id,date,type:'soin',data:{soinType,notes}});
+    saveCalEvents();
+    // Also create a dépense if montant provided
+    if(montantRaw&&!isNaN(montant)&&montant>0){
+      frais.push({date,cat:'Soins',montant,infos:soinType+(notes?' — '+notes:'')});
+      saveFrais();renderFraisAll();
+    }
+
+  } else if(_calAddType==='activite'){
+    const titre=document.getElementById('ca-activite-titre').value.trim();
+    const desc=document.getElementById('ca-activite-desc').value.trim();
+    calEvents.push({id,date,type:'activite',data:{titre,desc}});
+    saveCalEvents();
+  }
+
+  closeModal('modal-cal-add');
+  renderCalendar();
+}
+
+function deleteCalEvent(id){
+  calEvents=calEvents.filter(e=>e.id!==id);
+  saveCalEvents();
+  renderCalendar();
+  if(calSelectedDate)calRenderDetail(calSelectedDate);
+}
+// ══ CALENDRIER ═══════════════════════════════════════════════════════════════
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+let calSelectedDate=null;
+
+function calPrevMonth(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+function calNextMonth(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();}
+
+function renderCalendar(){
+  // Ensure data is fresh
+  try{const r=localStorage.getItem(LS_FRAIS);if(r)frais=JSON.parse(r);}catch(e){}
+  try{const r=localStorage.getItem(LS_EVENTS);if(r)calEvents=JSON.parse(r);}catch(e){}
+
+  const today=new Date();
+  const todayStr=today.toISOString().slice(0,10);
+  const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('cal-title').textContent=`${monthNames[calMonth]} ${calYear}`;
+
+  // Build event map
+  const evMap={};
+  traces.forEach(t=>{
+    const d=t.meta?.date;if(!d)return;
+    if(!evMap[d])evMap[d]={sorties:[],achats:[],soins:[],activites:[]};
+    evMap[d].sorties.push(t);
+  });
+  frais.forEach(f=>{
+    const d=f.date;if(!d)return;
+    if(!evMap[d])evMap[d]={sorties:[],achats:[],soins:[],activites:[]};
+    if(f.cat&&f.cat.toLowerCase()==='soins')evMap[d].soins.push({id:'frais_'+f.date+f.montant,date:f.date,type:'soin',data:{soinType:f.infos||'Soins',notes:''},_frais:f});
+    else evMap[d].achats.push(f);
+  });
+  calEvents.forEach(ev=>{
+    const d=ev.date;if(!d)return;
+    if(!evMap[d])evMap[d]={sorties:[],achats:[],soins:[],activites:[]};
+    if(ev.type==='soin')evMap[d].soins.push(ev);
+    else if(ev.type==='activite')evMap[d].activites.push(ev);
+  });
+
+  // First day of month (Monday=0)
+  const first=new Date(calYear,calMonth,1);
+  let startDow=first.getDay()-1; if(startDow<0)startDow=6;
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const prevDays=new Date(calYear,calMonth,0).getDate();
+
+  let html='';
+  // Previous month filler
+  for(let i=startDow-1;i>=0;i--){
+    html+=`<div class="cal-day other-month"><div class="cal-num">${prevDays-i}</div></div>`;
+  }
+  // Current month days
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const ev=evMap[dateStr];
+    const isToday=dateStr===todayStr;
+    const isSel=dateStr===calSelectedDate;
+    const hasSortie=ev&&ev.sorties.length>0;
+    const hasAchat=ev&&ev.achats.length>0;
+    const hasSoin=ev&&ev.soins.length>0;
+    const hasActivite=ev&&ev.activites.length>0;
+    const hasEv=hasSortie||hasAchat||hasSoin||hasActivite;
+    let dots='',count='';
+    if(hasSortie)dots+=`<div class="cal-dot" style="background:${CAL_COLORS.sortie};"></div>`;
+    if(hasAchat)dots+=`<div class="cal-dot" style="background:${CAL_COLORS.achat};"></div>`;
+    if(hasSoin)dots+=`<div class="cal-dot" style="background:${CAL_COLORS.soin};"></div>`;
+    if(hasActivite)dots+=`<div class="cal-dot" style="background:${CAL_COLORS.activite};"></div>`;
+    const total=(ev?.sorties.length||0)+(ev?.achats.length||0)+(ev?.soins.length||0)+(ev?.activites.length||0);
+    if(total>0)count=`<div class="cal-count">${total}</div>`;
+    html+=`<div class="cal-day${isToday?' today':''}${isSel?' selected':''}${hasEv?' has-events':''}" onclick="${hasEv?`calSelectDay('${dateStr}')`:''}">`+
+      `<div class="cal-num">${d}</div>`+
+      `<div class="cal-dots">${dots}</div>`+
+      count+
+      `</div>`;
+  }
+  // Next month filler
+  const totalCells=startDow+daysInMonth;
+  const rem=totalCells%7===0?0:7-(totalCells%7);
+  for(let i=1;i<=rem;i++){
+    html+=`<div class="cal-day other-month"><div class="cal-num">${i}</div></div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+
+  // Re-render detail if a day is selected
+  if(calSelectedDate)calRenderDetail(calSelectedDate);
+}
+
+function calSelectDay(dateStr){
+  calSelectedDate=calSelectedDate===dateStr?null:dateStr;
+  renderCalendar();
+  if(calSelectedDate)calRenderDetail(dateStr);
+  else{document.getElementById('cal-detail').style.display='none';document.getElementById('cal-detail').innerHTML='';}
+  if(calSelectedDate){
+    const det=document.getElementById('cal-detail');
+    det.style.display='flex';
+    det.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+}
+
+function calRenderDetail(dateStr){
+  const det=document.getElementById('cal-detail');
+  det.style.display='flex';
+  const [y,m,d]=dateStr.split('-');
+  const label=`${parseInt(d)} ${MONTH_NAMES[parseInt(m)-1]} ${y}`;
+  const daySorties=traces.filter(t=>t.meta?.date===dateStr);
+  const dayAchats=frais.filter(f=>f.date===dateStr);
+  const daySoins=calEvents.filter(e=>e.date===dateStr&&e.type==='soin');
+  const dayActivites=calEvents.filter(e=>e.date===dateStr&&e.type==='activite');
+  let html='';
+
+  if(daySorties.length){
+    html+=`<div class="cal-detail-card"><div class="cal-detail-title" style="color:${CAL_COLORS.sortie};">🐴 Sorties</div>`;
+    daySorties.forEach(t=>{
+      const iT=t.source==='text';
+      const dist=iT?t.textData.distKm.toFixed(1):(t.stats.dist/1000).toFixed(1);
+      const dur=iT?fmtDur(t.textData.durSec):fmtDur(t.stats.duration);
+      html+=`<div class="cal-event-row">
+        <div class="cal-dot" style="background:${CAL_COLORS.sortie};"></div>
+        <span>${t.meta.type==='cheval'?'🐴':'👣'}</span>
+        <span style="flex:1;font-weight:600;">${dist} km</span>
+        <span style="color:var(--muted);">${dur}</span>
+        ${t.meta.comment?`<span style="color:var(--muted);font-style:italic;font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${t.meta.comment}</span>`:''}
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  if(dayAchats.length){
+    const total=dayAchats.reduce((a,f)=>a+f.montant,0);
+    html+=`<div class="cal-detail-card"><div class="cal-detail-title" style="color:${CAL_COLORS.achat};">🛒 Achats</div>`;
+    dayAchats.forEach(f=>{
+      html+=`<div class="cal-event-row">
+        <div class="cal-dot" style="background:${CAT_COLORS[f.cat]||'#94a3b8'};"></div>
+        <span style="flex:1;">${f.infos||f.cat}</span>
+        <span style="color:var(--muted);font-size:12px;">${f.cat}</span>
+        <span style="font-weight:700;color:var(--text);">${f.montant.toFixed(2)} €</span>
+      </div>`;
+    });
+    html+=`<div style="text-align:right;font-size:13px;font-weight:700;margin-top:6px;">Total : ${total.toFixed(2)} €</div></div>`;
+  }
+
+  if(daySoins.length){
+    html+=`<div class="cal-detail-card"><div class="cal-detail-title" style="color:${CAL_COLORS.soin};">💊 Soins</div>`;
+    daySoins.forEach(ev=>{
+      const montantStr=ev._frais?` — ${ev._frais.montant.toFixed(2)} €`:'';
+      const canDelete=!ev._frais; // only delete calEvents, not frais
+      html+=`<div class="cal-event-row">
+        <div class="cal-dot" style="background:${CAL_COLORS.soin};"></div>
+        <span style="flex:1;font-weight:600;">${ev.data.soinType}</span>
+        ${ev.data.notes?`<span style="color:var(--muted);font-size:12px;">${ev.data.notes}</span>`:''}
+        ${montantStr?`<span style="font-weight:700;color:var(--text);">${montantStr}</span>`:''}
+        ${canDelete?`<button class="action-btn" onclick="deleteCalEvent('${ev.id}')" style="font-size:14px;">🗑</button>`:''}
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  if(dayActivites.length){
+    html+=`<div class="cal-detail-card"><div class="cal-detail-title" style="color:${CAL_COLORS.activite};">⭐ Activités</div>`;
+    dayActivites.forEach(ev=>{
+      html+=`<div class="cal-event-row">
+        <div class="cal-dot" style="background:${CAL_COLORS.activite};"></div>
+        <span style="flex:1;font-weight:600;">${ev.data.titre||'—'}</span>
+        ${ev.data.desc?`<span style="color:var(--muted);font-size:12px;">${ev.data.desc}</span>`:''}
+        <button class="action-btn" onclick="deleteCalEvent('${ev.id}')" style="font-size:14px;">🗑</button>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  if(!html)html=`<div class="cal-detail-card" style="color:var(--muted);font-size:14px;">Aucun événement ce jour.</div>`;
+  det.innerHTML=html;
+}
 // ══ PAGE NAVIGATION ═══════════════════════════════════════════════════════
 function showPage(name){
   document.getElementById('page-sorties').style.display=name==='sorties'?'flex':'none';
   document.getElementById('page-frais').style.display=name==='frais'?'flex':'none';
+  document.getElementById('page-cal').style.display=name==='cal'?'flex':'none';
   document.getElementById('page-tab-sorties').style.background=name==='sorties'?'var(--accent)':'none';
   document.getElementById('page-tab-sorties').style.color=name==='sorties'?'#fff':'var(--muted)';
   document.getElementById('page-tab-frais').style.background=name==='frais'?'var(--accent)':'none';
   document.getElementById('page-tab-frais').style.color=name==='frais'?'#fff':'var(--muted)';
+  document.getElementById('page-tab-cal').style.background=name==='cal'?'var(--accent)':'none';
+  document.getElementById('page-tab-cal').style.color=name==='cal'?'#fff':'var(--muted)';
   // Settings and historique buttons visibility
   // settings and hist buttons are now in page action bars, not topbar
+  if(name==='cal'){loadFrais();loadCalEvents();setTimeout(renderCalendar,50);}
   if(name==='frais'){renderFraisAll();// ensure stats tab active
     const statsTab=document.querySelector('#page-frais .stab');
     const statsPanel=document.getElementById('ftab-stats');
@@ -1656,13 +2138,13 @@ function showPage(name){
 }
 
 // ══ FRAIS DATA ════════════════════════════════════════════════════════════
-const LS_FRAIS='hermes_frais_v1';
-const LS_BACKUP='hermes_last_backup';
+
 const CAT_COLORS={
-  'Soins':'#f76495','Alimentation':'#38d9a9','Pension':'#4f8ef7',
-  'Matériel':'#f7a94f','Autre':'#94a3b8'
+  'Soins':'#ef4461','Alimentation':'#4ecb71','Pension':'#1a8fa0',
+  'Matériel':'#ffd253','Autre':'#2f3136'
 };
-let frais=[]; // [{date,cat,montant,infos}]
+// ── FRAIS DATA (declared early for renderCalendar) ────────────────────────
+let frais=[];
 let fraisSort={col:'date',dir:-1};
 let chartFraisMonthly=null, chartFraisCat=null;
 let fraisEditIdx=null;
@@ -1727,34 +2209,67 @@ function confirmFraisPaste(){
 }
 
 // ── FRAIS MANUAL ──────────────────────────────────────────────────────────
+function toggleSoinsSubtype(){
+  const isSoins=document.getElementById('fm-cat').value==='Soins';
+  document.getElementById('fm-soins-subtype-field').style.display=isSoins?'':'none';
+}
 function openFraisManualModal(){
   document.getElementById('fm-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('fm-cat').value='Soins';
   document.getElementById('fm-montant').value='';
   document.getElementById('fm-infos').value='';
+  toggleSoinsSubtype();
   openModal('modal-frais-manual');
 }
 function confirmFraisManual(){
   const montant=parseFloat(document.getElementById('fm-montant').value);
   if(isNaN(montant)||montant<0){alert('Montant invalide.');return;}
-  frais.push({date:document.getElementById('fm-date').value,cat:document.getElementById('fm-cat').value,montant,infos:document.getElementById('fm-infos').value.trim()});
+  const cat=document.getElementById('fm-cat').value;
+  let infos=document.getElementById('fm-infos').value.trim();
+  // If Soins, prepend the subtype
+  if(cat==='Soins'){
+    const sub=document.getElementById('fm-soins-subtype').value;
+    infos=infos?`${sub} — ${infos}`:sub;
+  }
+  frais.push({date:document.getElementById('fm-date').value,cat,montant,infos});
   closeModal('modal-frais-manual');saveFrais();renderFraisAll();
 }
 
 // ── FRAIS EDIT / DELETE ───────────────────────────────────────────────────
+function toggleSoinsSubtypeEdit(){
+  const isSoins=document.getElementById('fe-cat').value==='Soins';
+  document.getElementById('fe-soins-subtype-field').style.display=isSoins?'':'none';
+}
+const SOIN_TYPES=['Vétérinaire','Dentiste','Parage','Ostéo','Vaccin','Vermifuge','Autre'];
 function openFraisEdit(i){
   fraisEditIdx=i;const f=frais[i];
   document.getElementById('fe-date').value=f.date||'';
   document.getElementById('fe-cat').value=f.cat||'Autre';
   document.getElementById('fe-montant').value=f.montant||'';
-  document.getElementById('fe-infos').value=f.infos||'';
+  // Detect subtype prefix in infos
+  let infos=f.infos||'',subtype='Vétérinaire';
+  if(f.cat==='Soins'){
+    for(const st of SOIN_TYPES){
+      if(infos.startsWith(st+' — ')){subtype=st;infos=infos.slice(st.length+3);break;}
+      else if(infos===st){subtype=st;infos='';break;}
+    }
+    document.getElementById('fe-soins-subtype').value=subtype;
+  }
+  document.getElementById('fe-infos').value=infos;
+  toggleSoinsSubtypeEdit();
   openModal('modal-frais-edit');
 }
 function saveFraisEdit(){
   if(fraisEditIdx===null)return;
   const montant=parseFloat(document.getElementById('fe-montant').value);
   if(isNaN(montant)||montant<0){alert('Montant invalide.');return;}
-  frais[fraisEditIdx]={date:document.getElementById('fe-date').value,cat:document.getElementById('fe-cat').value,montant,infos:document.getElementById('fe-infos').value.trim()};
+  const cat=document.getElementById('fe-cat').value;
+  let infos=document.getElementById('fe-infos').value.trim();
+  if(cat==='Soins'){
+    const sub=document.getElementById('fe-soins-subtype').value;
+    infos=infos?`${sub} — ${infos}`:sub;
+  }
+  frais[fraisEditIdx]={date:document.getElementById('fe-date').value,cat,montant,infos};
   closeModal('modal-frais-edit');saveFrais();renderFraisAll();
 }
 function deleteFrais(i){
@@ -1778,7 +2293,7 @@ function renderFraisStats(){
 
   document.getElementById('f-year-pills').innerHTML=[...years,'all'].map(y=>{
     const lbl=y==='all'?'Toutes':y,active=_fYear===y;
-    return`<button onclick="setFYear('${y}')" style="border:none;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;background:${active?'var(--accent)':'var(--surface2)'};color:${active?'#fff':'var(--muted)'};">${lbl}</button>`;
+    return`<button onclick="setFYear('${y}')" style="border:none;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;background:${active?'var(--accent)':'var(--surface)'};color:${active?'#fff':'var(--muted)'};border:1.5px solid ${active?'var(--accent)':'var(--border)'};">${lbl}</button>`;
   }).join('');
 
   const trf=_fYear==='all'?frais:frais.filter(f=>f.date?.startsWith(_fYear));
@@ -1812,7 +2327,8 @@ function setFYear(y){_fYear=y;renderFraisStats();}
 function setFCat(cat){_fCat=cat;renderFraisStats();}
 
 function renderFraisMonthlyChart(trf){
-  const gc='rgba(46,54,80,.8)',tc='#7a82a0';
+  const isDk=document.documentElement.getAttribute('data-theme')==='dark';
+  const gc=isDk?'rgba(58,64,80,.8)':'rgba(180,200,180,.6)',tc=isDk?'#8892a0':'#6b856b';
   const moKeys=['01','02','03','04','05','06','07','08','09','10','11','12'];
   const cats=_fCat==='all'?[...new Set(trf.map(f=>f.cat).filter(Boolean))].sort():[_fCat];
 
